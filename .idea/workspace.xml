@@ -4,7 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="initial commit" />
+    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="initial commit">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/demand_system.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/demand_system.ipynb" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -37,7 +40,7 @@
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "C:/Users/wyatt/OneDrive - PennO365/WORKSPACE/py/premia",
+    "last_opened_file_path": "C:/Users/wyatt/OneDrive - PennO365/WORKSPACE/py/qis",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -63,6 +66,7 @@
       <updated>1708740734753</updated>
       <workItem from="1708740736216" duration="185000" />
       <workItem from="1708741144951" duration="4240000" />
+      <workItem from="1708799608913" duration="18413000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit">
       <option name="closed" value="true" />
@@ -104,7 +108,15 @@
       <option name="project" value="LOCAL" />
       <updated>1708799582580</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="initial commit">
+      <option name="closed" value="true" />
+      <created>1708799651893</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1708799651893</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
