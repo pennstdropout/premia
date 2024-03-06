@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="binn">
+    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="commit before graphs">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/demand_system.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/demand_system.ipynb" afterDir="false" />
     </list>
@@ -70,6 +70,7 @@
       <workItem from="1708984533983" duration="75000" />
       <workItem from="1709169548946" duration="2832000" />
       <workItem from="1709175206957" duration="24663000" />
+      <workItem from="1709696061402" duration="1905000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit">
       <option name="closed" value="true" />
@@ -151,7 +152,15 @@
       <option name="project" value="LOCAL" />
       <updated>1709192829305</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="commit before graphs">
+      <option name="closed" value="true" />
+      <created>1709696128100</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1709696128100</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -173,6 +182,7 @@
     <MESSAGE value="next commit" />
     <MESSAGE value="back" />
     <MESSAGE value="binn" />
-    <option name="LAST_COMMIT_MESSAGE" value="binn" />
+    <MESSAGE value="commit before graphs" />
+    <option name="LAST_COMMIT_MESSAGE" value="commit before graphs" />
   </component>
 </project>
