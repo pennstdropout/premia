@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="commit before graphs">
+    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="commit after cleaning">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/demand_system.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/demand_system.ipynb" afterDir="false" />
     </list>
@@ -70,7 +70,8 @@
       <workItem from="1708984533983" duration="75000" />
       <workItem from="1709169548946" duration="2832000" />
       <workItem from="1709175206957" duration="24663000" />
-      <workItem from="1709696061402" duration="1905000" />
+      <workItem from="1709696061402" duration="2105000" />
+      <workItem from="1709829403643" duration="663000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit">
       <option name="closed" value="true" />
@@ -160,7 +161,15 @@
       <option name="project" value="LOCAL" />
       <updated>1709696128100</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="commit after cleaning">
+      <option name="closed" value="true" />
+      <created>1709697988080</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1709697988080</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -183,6 +192,7 @@
     <MESSAGE value="back" />
     <MESSAGE value="binn" />
     <MESSAGE value="commit before graphs" />
-    <option name="LAST_COMMIT_MESSAGE" value="commit before graphs" />
+    <MESSAGE value="commit after cleaning" />
+    <option name="LAST_COMMIT_MESSAGE" value="commit after cleaning" />
   </component>
 </project>
