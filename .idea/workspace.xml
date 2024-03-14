@@ -40,7 +40,7 @@
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/wyatt/OneDrive - PennO365/WORKSPACE/py/qis&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/wyatt/OneDrive - PennO365/WORKSPACE/py/921&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -72,7 +72,12 @@
       <workItem from="1709175206957" duration="24663000" />
       <workItem from="1709696061402" duration="2105000" />
       <workItem from="1709829403643" duration="4170000" />
-      <workItem from="1710097746500" duration="8552000" />
+      <workItem from="1710097746500" duration="9560000" />
+      <workItem from="1710126056159" duration="2169000" />
+      <workItem from="1710167119678" duration="5979000" />
+      <workItem from="1710184133043" duration="634000" />
+      <workItem from="1710364609249" duration="2926000" />
+      <workItem from="1710434897573" duration="15977000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit">
       <option name="closed" value="true" />
@@ -186,7 +191,15 @@
       <option name="project" value="LOCAL" />
       <updated>1710105426632</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="initial graphs">
+      <option name="closed" value="true" />
+      <created>1710106350403</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1710106350403</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
