@@ -1,19 +1,20 @@
- 
+
 import pandas as pd
-import dask as dd
 import numpy as np
 from matplotlib import pyplot as plt
+import seaborn as sns
 import wrds
 import os
 from statsmodels.sandbox.regression import gmm
+from statsmodels.api import OLS
 
 
 
 # Import data
 
 def request_wrds(path: str,
-                 start_date: pd.Period,
-                 end_date: pd.Period) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
+                 start_date: pd.Timestamp,
+                 end_date: pd.Timestamp) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
     with wrds.Connection() as db:
         df_s12 = db.raw_sql(f'''
             SELECT *
@@ -22,6 +23,13 @@ def request_wrds(path: str,
         ''', date_cols=['fdate'])
         df_s12.to_csv(f'{path}s12.csv')
 
+        df_s12type5 = db.raw_sql(f'''
+                    SELECT *
+                    FROM tfn.s12type5
+                    WHERE fdate >= '{start_date}' AND fdate <= '{end_date}'
+                ''', date_cols=['fdate'])
+        df_s12type5.to_csv(f'{path}df_s12type5.csv')
+
         df_s34 = db.raw_sql(f'''
             SELECT *
             FROM tfn.s34
@@ -29,9 +37,16 @@ def request_wrds(path: str,
         ''', date_cols=['fdate'])
         df_s34.to_csv(f'{path}s34.csv')
 
+        df_beta = db.raw_sql(f'''
+            SELECT *
+            FROM beta.ff3
+            WHERE date >= '{start_date}' AND date <= '{end_date}'
+        ''', date_cols=['date'])
+        df_beta.to_csv(f'{path}security.csv')
+
         df_security = db.raw_sql(f'''
             SELECT *
-            FROM ff.factors_monthly
+            FROM crspm.crspm_stock
             WHERE date >= '{start_date}' AND date <= '{end_date}'
         ''', date_cols=['date'])
         df_security.to_csv(f'{path}security.csv')
@@ -40,8 +55,8 @@ def request_wrds(path: str,
 
 
 def load_wrds(path: str,
-              start_date: pd.Period,
-              end_date: pd.Period
+              start_date: pd.Timestamp,
+              end_date: pd.Timestamp
               ) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame):
     try:
         df_s12 = pd.read_csv(f'{path}s12.csv', encoding='ISO-8859-1', low_memory=False)
@@ -90,58 +105,61 @@ def clean_imports(df_s12,
     return df_s12_clean, df_s12type5_clean, df_s34_clean, df_beta_clean, df_security_clean
 
 
-def clean_s12(df: pd.DataFrame, start_date: pd.Period, end_date: pd.Period) -> pd.DataFrame:
+def clean_s12(df: pd.DataFrame, start_date: pd.Timestamp, end_date: pd.Timestamp) -> pd.DataFrame:
     columns = [
         'fundno',
         'rdate',
         'cusip',
         'shares'
     ]
-    df['rdate'] = df['rdate'].apply(fix_date, args=(start_date, end_date))
     return (df[columns]
             .dropna(how='any', subset=['fundno', 'shares', 'cusip'])
-            .drop_duplicates(subset=['fundno', 'rdate', 'cusip'], keep='last')
             .rename(columns={
         'rdate': 'date',
         'fundno': 'inv_id',
-        'cusip': 'asset_id'
-    })
+        'cusip': 'asset_id'})
+            .assign(date=lambda x: x['date'].apply(fix_date, args=(start_date, end_date)))
+            .drop_duplicates(subset=['inv_id', 'date', 'asset_id'], keep='last')
             .set_index(['inv_id', 'date', 'asset_id']))
 
 
-def clean_s12type5(df: pd.DataFrame, start_date: pd.Period, end_date: pd.Period) -> pd.DataFrame:
+def clean_s12type5(df: pd.DataFrame, start_date: pd.Timestamp, end_date: pd.Timestamp) -> pd.DataFrame:
     return (df
-            .assign(fdate=df['fdate'].apply(fix_date, args=(start_date, end_date)))
-            .dropna(how='any', subset=['fundno', 'fdate'])
             .rename(columns={'fdate': 'date', 'fundno': 'inv_id'})
+            .assign(
+        date=lambda x: x['date'].apply(fix_date, args=(start_date, end_date)))
+            .dropna(how='any', subset=['inv_id', 'date'])
             .set_index(['inv_id', 'date']))
 
 
-def clean_s34(df: pd.DataFrame, start_date: pd.Period, end_date: pd.Period) -> pd.DataFrame:
+def clean_s34(df: pd.DataFrame, start_date: pd.Timestamp, end_date: pd.Timestamp) -> pd.DataFrame:
     columns = [
         'mgrno',
         'rdate',
         'typecode',
         'cusip',
-        'shares',
-        'backup_holding',
-        'backup_me'
+        'prc',
+        'shrout2',
+        'shares'
     ]
-    df['rdate'] = df['rdate'].apply(fix_date, args=(start_date, end_date))
-    df['backup_holding'] = df['shares'] * df['prc']
-    df['backup_me'] = df['shrout2'] * df['prc'] * 1000
     return (df[columns]
             .dropna(how='any', subset=['cusip', 'shares'])
-            .drop_duplicates(subset=['mgrno', 'rdate', 'cusip'])
             .rename(columns={
         'rdate': 'date',
         'mgrno': 'inv_id',
-        'cusip': 'asset_id'
-    })
+        'cusip': 'asset_id'})
+            .assign(
+        date=lambda x: x['date'].apply(fix_date, args=(start_date, end_date)),
+        backup_holding=lambda x: x['shares'] * x['prc'],
+        backup_me=lambda x: x['shrout2'] * x['prc'] * 1000,
+        typecode=lambda x: x['typecode'].fillna(0).astype(int))
+            .astype({'inv_id': 'str'})
+            .drop_duplicates(subset=['inv_id', 'date', 'asset_id'], keep='last')
+            .drop(columns=['prc', 'shrout2'])
             .set_index(['inv_id', 'date', 'asset_id']))
 
 
-def clean_beta(df: pd.DataFrame, start_date: pd.Period, end_date: pd.Period) -> pd.DataFrame:
+def clean_beta(df: pd.DataFrame, start_date: pd.Timestamp, end_date: pd.Timestamp) -> pd.DataFrame:
     columns = [
         'PERMNO',
         'DATE',
@@ -149,17 +167,19 @@ def clean_beta(df: pd.DataFrame, start_date: pd.Period, end_date: pd.Period) -> 
         'b_smb',
         'b_hml'
     ]
-    df['DATE'] = df['DATE'].apply(fix_date, args=(start_date, end_date)) + 6
+    offset = pd.DateOffset(months=6)
     return (df[columns]
+            .dropna()
             .rename(columns={
         'DATE': 'date',
         'PERMNO': 'permno'})
-            .dropna()
+            .assign(
+        date=lambda x: x['date'].apply(fix_date, args=(start_date, end_date)) + offset)
             .drop_duplicates(subset=['date', 'permno'], keep='last')
             .set_index(['date', 'permno']))
 
 
-def clean_security(df: pd.DataFrame, start_date: pd.Period, end_date: pd.Period) -> pd.DataFrame:
+def clean_security(df: pd.DataFrame, start_date: pd.Timestamp, end_date: pd.Timestamp) -> pd.DataFrame:
     columns = [
         'LPERMNO',
         'cusip',
@@ -168,6 +188,7 @@ def clean_security(df: pd.DataFrame, start_date: pd.Period, end_date: pd.Period)
         'cshoq'
     ]
     return (df[columns]
+            .dropna(how='any', subset=['cusip', 'prccm', 'cshoq'])
             .rename(columns={
         'LPERMNO': 'permno',
         'cusip': 'asset_id',
@@ -175,24 +196,20 @@ def clean_security(df: pd.DataFrame, start_date: pd.Period, end_date: pd.Period)
         'cshoq': 'shrout',
         'datadate': 'date'})
             .assign(
-        shrout=df['cshoq'] * 1000000,
-        asset_id=df['cusip'].apply(lambda x: x[:-1]),
-        date=df['datadate'].apply(fix_date, args=(start_date, end_date)))
-            .dropna(how='any', subset=['asset_id', 'prc', 'shrout'])
+        shrout=lambda x: x['shrout'] * 1000000,
+        asset_id=lambda x: x['asset_id'].apply(lambda s: s[:-1]),
+        date=lambda x: x['date'].apply(fix_date, args=(start_date, end_date)))
             .drop_duplicates(subset=['date', 'permno'], keep='last')
             .set_index(['date', 'permno']))
 
 
-def fix_date(date: str, start_date: pd.Period, end_date: pd.Period) -> pd.Period:
-    date_converted = pd.Period(date, freq='M')
-
-    if date_converted < start_date or date_converted > end_date:
-        return np.NaN
-    else:
-        return date_converted
+def fix_date(date: str, start_date: pd.Timestamp, end_date: pd.Timestamp) -> pd.Timestamp:
+    date_converted = pd.Timestamp(date) - pd.offsets.MonthEnd()
+    date_filtered = np.NaN if (date_converted < start_date) or (date_converted > end_date) else date_converted
+    return date_filtered
 
 
- 
+
 # Stocks Monthly
 
 def merge_assets_factors(df_assets: pd.DataFrame, df_factors: pd.DataFrame) -> pd.DataFrame:
@@ -203,7 +220,8 @@ def merge_assets_factors(df_assets: pd.DataFrame, df_factors: pd.DataFrame) -> p
                          right_index=True)
     df_merged_indexed = (df_merged
                          .reset_index()
-                         .assign(date=lambda x: x['date'].astype(pd.PeriodDtype('Q')))
+                         .drop(columns=['permno'])
+                         .assign(date=lambda x: x['date'] - pd.offsets.BQuarterEnd())
                          .drop_duplicates(subset=['date', 'asset_id'], keep='last')
                          .set_index(['date', 'asset_id']))
     log_asset_merge(df_merged_indexed)
@@ -213,13 +231,9 @@ def merge_assets_factors(df_assets: pd.DataFrame, df_factors: pd.DataFrame) -> p
 # Manager / Holdings
 
 def match_fund_manager(df_fund: pd.DataFrame, df_manager: pd.DataFrame, df_key: pd.DataFrame) -> pd.DataFrame:
-    # TODO
-    # df_fund_wkey = df_fund.assign(mgrno=lambda x: df_key.loc[x.index.get_level_values(0), 'mgrcocd'])
-    # df_merged = df_manager.merge(df_fund_wkey, how='outer', on='mgrno')
-
     df_fund_manager = (df_manager
                        .reset_index()
-                       .assign(date=lambda x: x['date'].astype(pd.PeriodDtype('Q')))
+                       .assign(date=lambda x: x['date'] - pd.offsets.BQuarterEnd())
                        .drop_duplicates(subset=['inv_id', 'date', 'asset_id'], keep='last')
                        .set_index(['inv_id', 'date', 'asset_id']))
     log_holding_merge(df_fund_manager)
@@ -236,39 +250,23 @@ def merge_holding_factor(df_holding: pd.DataFrame, df_asset: pd.DataFrame) -> pd
         indicator=True
     )
 
-    df_merged = (df_merged
-                 .reset_index()
-                 .assign(
+    df_holding_factor = (df_merged
+                         .assign(
+        shares=lambda x: np.minimum(x['shares'], x['shrout']),
         ccm_holding=lambda x: x['prc'] * x['shares'],
         ccm_me=lambda x: x['prc'] * x['shrout'],
         holding=lambda x: x['ccm_holding'].fillna(x['backup_holding']) / 1000000,
         me=lambda x: x['ccm_me'].fillna(x['backup_me']) / 1000000,
-        type_code=lambda x: x['typecode'].fillna(0))
-                 .astype({'inv_id': 'str', 'type_code': 'int'})
-                 .drop(columns=['ccm_holding', 'backup_holding', 'ccm_me', 'backup_me'])
-                 .dropna(subset=['holding'])
-                 .set_index(['inv_id', 'date', 'asset_id'])
-                 .sort_index())
-    log_holding_factor_merge(df_merged)
-    return df_merged
+        typecode=lambda x: x['typecode'].fillna(0))
+                         .drop(columns=['ccm_holding', 'backup_holding', 'ccm_me', 'backup_me'])
+                         .dropna(subset=['holding', 'me'])
+                         .reorder_levels(['inv_id', 'date', 'asset_id']))
+    log_holding_factor_merge(df_holding_factor)
+    return df_holding_factor
 
 
-def create_outside_asset(df_holding_factor: pd.DataFrame) -> (pd.DataFrame, pd.DataFrame):
-    df_inside = df_holding_factor[df_holding_factor['_merge'] == 'both'].drop(columns='_merge')
-    df_outside = df_holding_factor[df_holding_factor['_merge'] == 'left_only'].groupby(['inv_id', 'date']).agg({
-        'typecode': 'first',
-        'holding': 'sum'
-    }).assign(asset_id='-1').set_index('asset_id', append=True)
-    log_outside_asset(df_outside)
-    return df_inside, df_outside
-
-
-def assetid_byinv(df_holding: pd.DataFrame) -> pd.Series:
-    return df_holding.reset_index('asset_id')['asset_id']
-
-
-def create_household_sector(df_outside: pd.DataFrame) -> pd.DataFrame:
-    df_household = (df_outside
+def create_household_sector(df_holding_factor: pd.DataFrame) -> pd.DataFrame:
+    df_household = (df_holding_factor
                     .groupby(['date', 'asset_id'])
                     .agg({
         'shares': 'sum',
@@ -278,19 +276,35 @@ def create_household_sector(df_outside: pd.DataFrame) -> pd.DataFrame:
         'b_smb': 'last',
         'b_hml': 'last',
         'holding': 'sum',
-        'me': 'last'})
+        'me': 'last',
+        '_merge': 'last'})
                     .assign(
-        shares=lambda x: x['shrout'] - x['shares'],
-        holding=lambda x: x['me'] - x['holding'],
-        inv_id='-1',
-        typecode=-1)
+        shares=lambda x: np.maximum(x['shrout'] - x['shares'], 0),
+        holding=lambda x: np.maximum(x['me'] - x['holding'], 0),
+        inv_id='0',
+        typecode=0)
                     .set_index('inv_id', append=True)
                     .reorder_levels(['inv_id', 'date', 'asset_id']))
     log_household_sector(df_household)
-    return df_household
+    df_concat = pd.concat([df_holding_factor, df_household])
+    return df_concat
 
 
- 
+def create_outside_asset(df_household: pd.DataFrame) -> (pd.DataFrame, pd.DataFrame):
+    mask = df_household['_merge'] == 'both'
+    df_inside = df_household[mask].drop(columns='_merge')
+    df_outside = (df_household[~mask]
+                  .groupby(['inv_id', 'date'])
+                  .agg({
+        'typecode': 'last',
+        'holding': 'sum'})
+                  .assign(asset_id='-1')
+                  .set_index('asset_id', append=True))
+    log_outside_asset(df_outside)
+    return df_inside, df_outside
+
+
+
 # Data
 
 def calc_inv_aum(df_inside: pd.DataFrame, df_outside: pd.DataFrame) -> pd.DataFrame:
@@ -324,7 +338,8 @@ def calc_inv_aum(df_inside: pd.DataFrame, df_outside: pd.DataFrame) -> pd.DataFr
         n_holding=lambda x: x['n_holding'].fillna(0),
         out_aum=lambda x: x['out_aum'].fillna(0),
         in_aum=lambda x: x['in_aum'].fillna(0),
-        aum=lambda x: x['out_aum'] + x['in_aum'])
+        aum=lambda x: x['out_aum'] + x['in_aum'],
+        out_weight=lambda x: x['out_aum'] / x['aum'])
                   .drop(columns=['typecode_x', 'typecode_y']))
 
     log_inv_aum(df_inv_aum)
@@ -333,47 +348,45 @@ def calc_inv_aum(df_inside: pd.DataFrame, df_outside: pd.DataFrame) -> pd.DataFr
 
 def bin_concentrated_inv(df_inside: pd.DataFrame, df_inv_aum: pd.DataFrame, min_n_holding: int) -> (
 pd.DataFrame, pd.DataFrame):
-    household_mask = (df_inv_aum['out_aum'] == 0) | (df_inv_aum['in_aum'] == 0)
-    df_valid = df_inv_aum[~household_mask]
+    log_bins(df_inside, df_inv_aum)
+    return df_inside, df_inv_aum
+    household_mask = (df_inv_aum['out_aum'] == 0) | (df_inv_aum['in_aum'] == 0) | (df_inv_aum['aum'] < 10)
+    df_valid = (df_inv_aum
+                .reset_index()
+                .assign(
+        inv_id=lambda x: x['inv_id'].mask(household_mask.values, '0'),
+        typecode=lambda x: x['typecode'].mask(household_mask.values, 0))
+                .set_index(['inv_id', 'date']))
 
     diversified_mask = df_valid['n_holding'] >= min_n_holding
     df_aum_diversified = df_valid[diversified_mask]
-    df_aum_concentrated = df_valid[~diversified_mask].assign(bin=np.nan)
 
-    arr_dates = df_aum_concentrated.index.get_level_values('date')
-    arr_unique_dates = arr_dates.unique()
-    arr_typecodes = df_aum_concentrated['typecode'].unique()
+    def calc_bin(df_date_type: pd.DataFrame) -> pd.Series:
+        typecode = df_date_type['typecode'].iloc[0]
+        n_bins = np.ceil(df_date_type['n_holding'].sum() / (2 * min_n_holding)).astype(int)
+        if (n_bins <= 1) or (typecode == 0):
+            return pd.Series('0', index=df_date_type.index)
+        else:
+            return pd.qcut(x=df_date_type['aum'], q=n_bins, labels=False).apply(fix_qcut_bin, args=(str(typecode),))
 
-    for date in arr_unique_dates:
-        for typecode in arr_typecodes:
-            mask = (arr_dates == date) & (df_aum_concentrated['typecode'] == typecode)
-            df_type_date = df_aum_concentrated[mask]
-            n_bins = np.ceil(df_type_date['n_holding'].sum() / (2 * min_n_holding)).astype(int)
-            if n_bins <= 1:
-                df_aum_concentrated.loc[mask, 'bin'] = 0
-            else:
-                df_aum_concentrated.loc[mask, 'bin'] = pd.qcut(x=df_type_date['aum'], q=n_bins, labels=False).astype(
-                    int)
+    def fix_qcut_bin(bin: int, typecode: str) -> str:
+        return typecode + ':' + str(bin)
 
-    df_aum_concentrated = (df_aum_concentrated
-                           .astype({'bin': 'str'})
-                           .assign(bin=lambda x: x['typecode'].astype('str') + ':' + x['bin']))
+    df_aum_concentrated = df_valid[~diversified_mask].assign(
+        bin=lambda x: x.groupby(['date', 'typecode']).apply(calc_bin).reset_index(drop=True))
     df_concentrated_binned = (df_aum_concentrated
-                              .reset_index()
                               .groupby(['bin', 'date'])
                               .agg({
         'in_aum': 'sum',
         'out_aum': 'sum',
         'aum': 'sum',
-        'n_holding': 'sum',
         'typecode': 'last'})
                               .rename_axis(index={'bin': 'inv_id'}))
-    df_aum_binned = (pd.concat([df_aum_diversified, df_concentrated_binned])
-    .sort_index()
+    df_aum_binned = (pd.concat([
+        df_aum_diversified,
+        df_concentrated_binned])
     .assign(
-        out_weight=lambda x: x['out_aum'] / x['aum'],
-        in_weight=lambda x: x['in_aum'] / x['aum']))
-
+        out_weight=lambda x: x['out_aum'] / x['aum']))
     df_inside_merged = pd.merge(
         left=df_inside,
         right=df_aum_concentrated['bin'],
@@ -393,18 +406,22 @@ pd.DataFrame, pd.DataFrame):
         'b_smb': 'last',
         'b_hml': 'last'})
                         .rename_axis(index={'bin': 'inv_id'}))
-
     log_bins(df_inside_binned, df_aum_binned)
     return df_inside_binned, df_aum_binned
+
+
+def assetid_byinv(df_holding: pd.DataFrame) -> pd.Series:
+    return df_holding.reset_index('asset_id')['asset_id']
 
 
 def calc_inv_universe(df_holding: pd.DataFrame, n_quarters: int) -> pd.DataFrame:
     df_assetid_byinv = assetid_byinv(df_holding).sort_index()
     idx_inv_universe = df_assetid_byinv.index.unique()
     df_inv_universe = pd.DataFrame(index=idx_inv_universe, columns=['inv_universe'])
+    offset = pd.DateOffset(months=3 * n_quarters)
 
-    def calc_past_quarters(i: int, d: pd.Period) -> np.array:
-        prev_date = d - n_quarters
+    def calc_past_quarters(i: int, d: pd.Timestamp) -> np.array:
+        prev_date = d - offset
         asset_id_within_range = df_assetid_byinv.loc[i].loc[prev_date:d]
         inv_uni = asset_id_within_range.unique().tolist()
         return inv_uni
@@ -425,9 +442,11 @@ def create_equal_allocation(df_inv_universe: pd.DataFrame, df_aum_binned: pd.Dat
         how='inner',
         left_index=True,
         right_index=True)
-
+    cutoff = 0.95
     return (df_equal_alloc
-            .assign(allocation=lambda x: x['aum'] / (x['uni_size'] + 1))
+            .assign(
+        valid=lambda x: x.index.get_level_values('inv_id') != '0',
+        allocation=lambda x: x['aum'] / (x['uni_size'] + 1))
             .explode('inv_universe')
             .rename(columns={'inv_universe': 'asset_id'})
             .set_index('asset_id', append=True))
@@ -442,12 +461,14 @@ def create_total_allocation(df: pd.DataFrame) -> pd.DataFrame:
 def create_instrument(df_inv_universe: pd.DataFrame, df_aum_binned: pd.DataFrame) -> pd.DataFrame:
     df_equal_allocation = create_equal_allocation(df_inv_universe, df_aum_binned)
     total_allocation = create_total_allocation(df_equal_allocation)
-    df_instrument = df_equal_allocation.assign(iv_me=lambda x: total_allocation - x['allocation'])
+    df_instrument = (df_equal_allocation
+                     .assign(iv_me=lambda x: total_allocation - x['allocation'])
+                     .drop(columns=['allocation', 'valid', 'typecode']))
     log_instrument(df_instrument)
     return df_instrument
 
 
- 
+
 # Estimation
 
 def calc_holding_weights(df_instrument: pd.DataFrame, df_inside_binned: pd.DataFrame, min_holding: int) -> pd.DataFrame:
@@ -458,19 +479,19 @@ def calc_holding_weights(df_instrument: pd.DataFrame, df_inside_binned: pd.DataF
         left_index=True,
         right_index=True)
 
-    mask = (df_merged['n_holding'] >= min_holding) & (df_merged['out_weight'] > 0) & (df_merged['in_weight'] > 0) & (
-                df_merged['me'] > 0) & (df_merged['iv_me'] > 0)
+    mask = (df_merged['holding'] > 0) & (df_merged['n_holding'] >= min_holding) & (df_merged['out_weight'] > 0) & (
+                df_merged['out_weight'] < 1) & (df_merged['me'] > 0) & (df_merged['iv_me'] > 0)
 
     df_weights = (df_merged.loc[mask]
                   .assign(
         ln_me=lambda x: np.log(x['me']),
         ln_iv_me=lambda x: np.log(x['iv_me']),
         weight=lambda x: x['holding'] / x['aum'],
-        ln_weight=lambda x: np.log(x['weight']),
         rweight=lambda x: x['weight'] / x['out_weight'],
         ln_rweight=lambda x: np.log(x['rweight']),
         mean_ln_rweight=lambda x: x['ln_rweight'].groupby(['inv_id', 'date']).transform('mean'),
         const=1)
+                  .drop(columns=['me', 'iv_me', 'weight', 'rweight'])
                   .reset_index('asset_id'))
 
     log_holding_weights(df_weights)
@@ -500,7 +521,7 @@ def momcond_1(params, exog):
 
 
 def momcond_2(params, exog):
-    upper_bound = 0.999
+    upper_bound = 0.9999
     exog = exog.T
 
     beta_ln_me = params[0]
@@ -537,7 +558,7 @@ def estimate_model(df_weights: pd.DataFrame, characteristics: list, params: list
                 start_params=start_params,
                 maxiter=0,
                 inv_weights=w0inv)
-            log_results(result, params)
+            # log_results(result, params)
             return result
         except np.linalg.LinAlgError:
             print('Linear Algebra Error')
@@ -564,7 +585,7 @@ def estimate_model(df_weights: pd.DataFrame, characteristics: list, params: list
                 start_params=start_params,
                 maxiter=0,
                 inv_weights=w0inv)
-            log_results(result, params)
+            # log_results(result, params)
             return result
         except np.linalg.LinAlgError:
             print('Singular Matrix Error')
@@ -572,10 +593,10 @@ def estimate_model(df_weights: pd.DataFrame, characteristics: list, params: list
             print(f'Date:  {df_inv_date.index.get_level_values(1).unique()}')
             return np.NaN
 
-    cols = [['ln_me', 'ln_iv_me', 'rweight', 'mean_ln_rweight'] + characteristics]
-    df_model = df_weights.assign(
+    df_model = (df_weights
+    .assign(
         gmm_result=lambda x: x.groupby(['inv_id', 'date']).apply(fit_inv_date_1),
-        lst_params=lambda x: x['gmm_result'].apply(unpack_result))
+        lst_params=lambda x: x['gmm_result'].apply(unpack_result)))
     df_model[params] = pd.DataFrame(df_model['lst_params'].tolist(), index=df_model.index)
     df_model = df_model.drop(columns='lst_params')
 
@@ -584,40 +605,169 @@ def estimate_model(df_weights: pd.DataFrame, characteristics: list, params: list
 
 
 def calc_latent_demand(df_model: pd.DataFrame, characteristics: list, params: list) -> pd.DataFrame:
-    upper_bound = 0.999
+    upper_bound = 0.9999
 
     df_results = df_model.assign(
         beta_ln_me=lambda x: upper_bound - np.exp(-1 * x['beta_ln_me']),
         char_demand=lambda x: np.einsum('ij,ij->i', x[['ln_me'] + characteristics], x[params]),
-        pred_rweight=lambda x: np.exp(-1 * (x['char_demand'] + x['mean_ln_rweight'])),
-        latent_demand=lambda x: x['rweight'] * x['pred_rweight'])
+        pred_ln_rweight=lambda x: x['char_demand'] + x['mean_ln_rweight'],
+        latent_demand=lambda x: np.exp(x['ln_rweight'] - x['pred_ln_rweight']))
+    log_latent_demand(df_results)
     return df_results
 
 
- 
+
 # Figures
 
-def j_test(df_results: pd.DataFrame):
-    # TODO
-    pass
+def check_moment_condition(df_results: pd.DataFrame):
+    df_mom = (df_results
+    .groupby(['inv_id', 'date'])
+    .agg({
+        'latent_demand': 'mean',
+        'n_holding': 'last',
+        'uni_size': 'last'})
+    .assign(
+        iweight=lambda x: x['n_holding'] / x['uni_size'],
+        latent_demand=lambda x: x['latent_demand'] * x['iweight']))
+
+    epsilon = .0001
+    mask = (df_mom['latent_demand'] > 1 - epsilon) & (df_mom['latent_demand'] < 1 + epsilon)
+    valid_rate = len(df_mom[mask]) / len(df_mom)
+    print(f'Percentage of valid portfolios:  {100 * valid_rate:.4f}')
 
 
-def graph_index_params(df_results: pd.DataFrame):
-    # TODO
-    pass
+def critical_value_test(df_results: pd.DataFrame, characteristics: list, figure_path: str):
+    def iv_reg(df_inv_date: pd.DataFrame):
+        y = df_inv_date['ln_me']
+        X = df_inv_date[['ln_iv_me'] + characteristics]
+        model = OLS(y, X)
+        result = model.fit()
+        t_stat = result.tvalues.iloc[0]
+        return t_stat
+
+    df_iv = (df_results
+             .groupby(['inv_id', 'date'])
+             .apply(iv_reg)
+             .to_frame('t_stat')
+             .groupby('date')
+             .min()
+             .reset_index())
+
+    g = sns.relplot(
+        data=df_iv,
+        x='date',
+        y='t_stat',
+        kind='line')
+    g.refline(
+        y=4.05,
+        linestyle='--')
+    g.set_axis_labels('Date', 'First stage t-statistic')
+    g.despine()
+    plt.savefig(os.path.join(figure_path, f'instrument_validity.png'))
+
+
+def typecode_share_counts(df_inv_aum: pd.DataFrame, figure_path: str):
+    df_type_share = (df_inv_aum
+                     .assign(typecode=lambda x: x['typecode'].apply(get_readable_typecode))
+                     .groupby(['typecode', 'date'])
+                     .agg({'aum': 'sum', 'n_holding': 'count'})
+                     .assign(share=lambda x: x['aum'] / x['aum'].groupby('date').transform('sum')))
+
+    g = sns.relplot(data=df_type_share, x='date', y='n_holding', hue='typecode', kind='line')
+    g.set_axis_labels('Date', 'Number of Investors')
+    g.despine()
+    plt.savefig(os.path.join(figure_path, f'typecode_count.png'))
+
+    g = sns.relplot(data=df_type_share, x='date', y='share', hue='typecode', kind='line')
+    g.set_axis_labels('Date', 'Share of AUM')
+    g.despine()
+    plt.savefig(os.path.join(figure_path, f'typecode_share.png'))
+
+
+def test_index_fund(df_results: pd.DataFrame, characteristics: list, params: list, figure_path: str):
+    index_id = '90457'
+    mask = df_results.index.get_level_values(0) == index_id
+    df_index_fund = (df_results
+    .assign(
+        ln_rweight=lambda x: x['ln_me'] + x['mean_ln_rweight'])
+    .loc[mask, ['ln_me', 'ln_iv_me', 'ln_rweight', 'mean_ln_rweight'] + characteristics + params])
+
+    df_index_fund_model = estimate_model(df_index_fund, characteristics, params)
+    df_index_fund_result = calc_latent_demand(df_index_fund_model, characteristics, params)
+    cols = params + ['latent_demand']
+    for param in cols:
+        g = sns.relplot(data=df_index_fund_result[[param]],
+                        x='date',
+                        y=param,
+                        kind='line')
+        g.set_axis_labels('Date', f'{get_readable_param(param)}')
+        g.despine()
+        plt.ylim(-1, 1)
+        plt.savefig(os.path.join(figure_path, f'index_fund_{param}.png'))
 
 
 def graph_type_params(df_results: pd.DataFrame, params: list, figure_path: str):
     cols = params + ['latent_demand']
-    df_types = df_results.groupby(['typecode', 'date'])[cols].mean()
+
+    df_types = df_results.copy()
+    df_types[cols] = df_types[cols].apply(lambda x: x * df_results['aum'])
+    df_types = (df_types
+                .groupby(['typecode', 'date'])
+                [cols]
+                .sum()
+                .apply(lambda x: x / df_results.groupby(['typecode', 'date'])['aum'].sum())
+                .reset_index()
+                .assign(typecode=lambda x: x['typecode'].apply(get_readable_typecode)))
 
     for param in cols:
-        df_types.groupby('typecode')[param].apply(lambda x: x.plot(label=dict_typecode[x.name]))
-        plt.xlabel('Date')
-        plt.ylabel(f'{get_readable_param(param)}')
-        plt.legend()
+        g = sns.relplot(data=df_types,
+                        x='date',
+                        y=param,
+                        hue='typecode',
+                        kind='line')
+        g.set_axis_labels('Date', f'{get_readable_param(param)}')
+        g.legend.set_title('Institution Type')
+        g.despine()
         plt.savefig(os.path.join(figure_path, f'{param}.png'))
-        plt.show()
+
+
+def graph_std_latent_demand(df_results: pd.DataFrame, figure_path: str):
+    df_ld = (df_results
+             .groupby(['inv_id', 'date'])
+             .agg({
+        'latent_demand': 'std',
+        'aum': 'last',
+        'typecode': 'last'})
+             .assign(latent_demand=lambda x: x['latent_demand'] * x['aum'])
+             .groupby(['typecode', 'date'])
+             .agg({
+        'latent_demand': 'mean',
+        'aum': 'sum'})
+             .assign(latent_demand=lambda x: x['latent_demand'] / x['aum']))
+
+    g = sns.relplot(data=df_ld,
+                    x='date',
+                    y='latent_demand',
+                    hue='typecode',
+                    kind='line')
+    g.set_axis_labels('Date', 'Standard Deviation of Latent Demand')
+    g.legend.set_title('Institution Type')
+    g.despine()
+    plt.savefig(os.path.join(figure_path, f'std_latent_demand.png'))
+
+
+def create_tables(df_instrument: pd.DataFrame, df_inv_uni: pd.DataFrame):
+    df_pctile = df_inv_uni.assign(pctile=0)
+    arr_dates = df_pctile.index.get_level_values('date').unique()
+
+    for date in arr_dates:
+        data = df_pctile.loc[date, 'aum']
+        df_pctile.loc[date, 'pctile'] = pd.qcut(data, q=100)
+
+    df_grouped_pctile = (df_pctile['uni_persistence']
+                         .groupby(['pctile'])
+                         .median())
+    print(df_grouped_pctile.head(10))
 
 
 def get_param_cols(cols: list) -> list:
@@ -628,7 +778,11 @@ def get_readable_param(name: str) -> str:
     return name.replace('_', ' ').title()
 
 
- 
+def get_readable_typecode(typecode: int):
+    return dict_typecode[typecode]
+
+
+
 # Log
 
 def log_import_s12(df_s12: pd.DataFrame):
@@ -754,27 +908,13 @@ def log_inv_aum(df_inv_aum: pd.DataFrame):
 
 def log_bins(df_inside_binned: pd.DataFrame, df_aum_binned: pd.DataFrame):
     print('Binned investors')
-    print('Number of investors by aum:  ', len(df_inside_binned.index.unique('inv_id')))
-    print('Number of investors by holding:  ', len(df_aum_binned.index.unique('inv_id')))
+    print('Number of investors by holding:  ', len(df_inside_binned.index.unique('inv_id')))
+    print('Number of investors by aum:  ', len(df_aum_binned.index.unique('inv_id')))
 
 
 def log_inv_universe(df_inv_uni: pd.DataFrame):
     print('Created investment universe')
     print(df_inv_uni.describe())
-
-
-def create_tables(df_instrument: pd.DataFrame, df_inv_uni: pd.DataFrame):
-    df_pctile = df_inv_uni.assign(pctile=0)
-    arr_dates = df_pctile.index.get_level_values('date').unique()
-
-    for date in arr_dates:
-        data = df_pctile.loc[date, 'aum']
-        df_pctile.loc[date, 'pctile'] = pd.qcut(data, q=100)
-
-    df_grouped_pctile = (df_pctile['uni_persistence']
-                         .groupby(['pctile'])
-                         .median())
-    print(df_grouped_pctile.head(10))
 
 
 def log_instrument(df_instrument: pd.DataFrame):
@@ -798,22 +938,30 @@ def log_params(df_params: pd.DataFrame):
     print()
 
 
- 
+def log_latent_demand(df_results: pd.DataFrame):
+    print('Calculated latent demand')
+    print()
+
+
+
 # Global parameters
 
-plt.style.use('seaborn-v0_8-bright')
+sns.set_theme(style='ticks', palette=sns.color_palette('hls', 6))
 
 input_path = 'data/'
 output_path = 'output/'
 figure_path = 'figures/'
 
-start_date = pd.Period('2012-01', freq='M')
-end_date = pd.Period('2017-12', freq='M')
+os.makedirs(output_path, exist_ok=True)
+os.makedirs(figure_path, exist_ok=True)
+
+start_date = pd.Timestamp('2012-01')
+end_date = pd.Timestamp('2017-12')
 
 characteristics = [
-                      'b_mkt',  # can be changed
-                      'b_smb',  # can be changed
-                      'b_hml'  # can be changed
+                      'b_mkt',
+                      'b_smb',
+                      'b_hml'
                   ] + ['const']
 params = ['beta_ln_me'] + get_param_cols(characteristics)
 dict_typecode = {
@@ -827,7 +975,7 @@ dict_typecode = {
 
 min_n_holding = 1000
 n_quarters = 11
- 
+
 # Main
 
 print('\n---------------Starting Imports---------------------------\n')
@@ -840,74 +988,76 @@ df_s12_clean, df_s12type5_clean, df_s34_clean, df_beta_clean, df_security_clean 
     end_date
 )
 
-df_s12_clean.to_csv(os.path.join(output_path, 'df_s12_clean.csv'))
-df_s12type5_clean.to_csv(os.path.join(output_path, 'df_s12type5_clean.csv'))
-df_s34_clean.to_csv(os.path.join(output_path, 'df_s34_clean.csv'))
-df_beta_clean.to_csv(os.path.join(output_path, 'df_beta_clean.csv'))
-df_security_clean.to_csv(os.path.join(output_path, 'df_security_clean.csv'))
- 
+# df_s12_clean.to_csv(os.path.join(output_path, 'df_s12_clean.csv'))
+# df_s12type5_clean.to_csv(os.path.join(output_path, 'df_s12type5_clean.csv'))
+# df_s34_clean.to_csv(os.path.join(output_path, 'df_s34_clean.csv'))
+# df_beta_clean.to_csv(os.path.join(output_path, 'df_beta_clean.csv'))
+# df_security_clean.to_csv(os.path.join(output_path, 'df_security_clean.csv'))
+
 print('\n---------------Merging Assets/Factors---------------------------\n')
 df_asset = merge_assets_factors(df_security_clean, df_beta_clean)
-df_asset.to_csv(os.path.join(output_path, 'df_asset.csv'))
+# df_asset.to_csv(os.path.join(output_path, 'df_asset.csv'))
 
 print('\n---------------Merging s12/s34 Holdings---------------------------\n')
 df_fund_manager = match_fund_manager(df_s12_clean, df_s34_clean, df_s12type5_clean)
-df_fund_manager.to_csv(os.path.join(output_path, 'df_fund_manager.csv'))
- 
+# df_fund_manager.to_csv(os.path.join(output_path, 'df_fund_manager.csv'))
+
 print('\n---------------Merging Holdings/Factors---------------------------\n')
 df_holding_factor = merge_holding_factor(df_fund_manager, df_asset)
-df_holding_factor.to_csv(os.path.join(output_path, 'df_holding_factor.csv'))
-
-print('\n---------------Partitioning Outside Asset---------------------------\n')
-df_inside, df_outside = create_outside_asset(df_holding_factor)
-df_inside.to_csv(os.path.join(output_path, 'df_inside.csv'))
-df_outside.to_csv(os.path.join(output_path, 'df_outside.csv'))
+# df_holding_factor.to_csv(os.path.join(output_path, 'df_holding_factor.csv'))
 
 print('\n---------------Creating Household Sector---------------------------\n')
-df_household = create_household_sector(df_inside)
-df_household.to_csv(os.path.join(output_path, 'df_household.csv'))
+df_household = create_household_sector(df_holding_factor)
+# df_household.to_csv(os.path.join(output_path, 'df_household.csv'))
+
+print('\n---------------Partitioning Outside Asset---------------------------\n')
+df_inside, df_outside = create_outside_asset(df_household)
+# df_inside.to_csv(os.path.join(output_path, 'df_inside.csv'))
+# df_outside.to_csv(os.path.join(output_path, 'df_outside.csv'))
 
 print('\n---------------Calculating Investor AUM---------------------------\n')
 df_inv_aum = calc_inv_aum(df_inside, df_outside)
-df_inv_aum.to_csv(os.path.join(output_path, 'df_inv_aum.csv'))
- 
-# df_inside = pd.read_csv(os.path.join(output, 'df_inside.csv'), dtype={'date':pd.PeriodDtype('Q')})
-# df_inv_aum = pd.read_csv(os.path.join(output, 'df_inv_aum.csv'), dtype={'date':pd.PeriodDtype('Q')})
-# df_outside = pd.read_csv(os.path.join(output, 'df_outside.csv'), dtype={'date':pd.PeriodDtype('Q')})
-# df_asset = pd.read_csv(os.path.join(output, 'df_asset.csv'), dtype={'date':pd.PeriodDtype('Q')})
-# 
-# df_inside.set_index(['inv_id', 'date', 'asset_id'], inplace=True)
-# df_inv_aum.set_index(['inv_id', 'date'], inplace=True)
-# df_outside.set_index(['inv_id', 'date', 'asset_id'], inplace=True)
-# df_asset.set_index(['date', 'asset_id'], inplace=True)
- 
-print('\n---------------Pooling Investors By Type/Size---------------------------\n')
-df_inside_binned, df_aum_binned = bin_concentrated_inv(df_inside, df_inv_aum, min_n_holding)
-df_inside_binned.to_csv(os.path.join(output_path, 'df_inside_binned.csv'))
-df_aum_binned.to_csv(os.path.join(output_path, 'df_aum_binned.csv'))
- 
+# df_inv_aum.to_csv(os.path.join(output_path, 'df_inv_aum.csv'))print('\n---------------Pooling Investors By Type/Size---------------------------\n')
+
+df_holding_binned, df_aum_binned = bin_concentrated_inv(df_inside, df_inv_aum, min_n_holding)
+# df_holding_binned.to_csv(os.path.join(output_path, 'df_holding_binned.csv'))
+# df_aum_binned.to_csv(os.path.join(output_path, 'df_aum_binned.csv'))
+
 print('\n---------------Tracking Investment Universe---------------------------\n')
-df_inv_universe = calc_inv_universe(df_inside_binned, n_quarters)
-df_inv_universe.to_csv(os.path.join(output_path, 'df_inv_universe.csv'))
+df_inv_universe = calc_inv_universe(df_holding_binned, n_quarters)
+# df_inv_universe.to_csv(os.path.join(output_path, 'df_inv_universe.csv'))
 
 print('\n---------------Calculating Instrument---------------------------\n')
 df_instrument = create_instrument(df_inv_universe, df_aum_binned)
-df_instrument.to_csv(os.path.join(output_path, 'df_instrument.csv'))
- 
+# df_instrument.to_csv(os.path.join(output_path, 'df_instrument.csv'))
+
 print('\n---------------Calculating Holding Weights---------------------------\n')
-df_weights = calc_holding_weights(df_instrument, df_inside_binned, min_n_holding)
-df_weights.to_csv(os.path.join(output_path, 'df_weights.csv'))
- 
+df_weights = calc_holding_weights(df_instrument, df_holding_binned, min_n_holding)
+# df_weights.to_csv(os.path.join(output_path, 'df_weights.csv'))
+
 print('\n---------------Estimating Demand System---------------------------\n')
 df_model = estimate_model(df_weights, characteristics, params)
-df_model.to_csv(os.path.join(output_path, 'df_model.csv'))
- 
+# df_model.to_csv(os.path.join(output_path, 'df_model.csv'))
+
 print('\n---------------Calculating Latent Demand---------------------------\n')
 df_results = calc_latent_demand(df_model, characteristics, params)
-df_results.to_csv(os.path.join(output_path, 'df_results.csv'))
- 
+# df_results.to_csv(os.path.join(output_path, 'df_results.csv'))
+
+print('\n---------------Testing Moment Condition---------------------------\n')
+check_moment_condition(df_results)
+
+print('\n---------------Investors by Typecode---------------------------\n')
+typecode_share_counts(df_inv_aum, figure_path)
+
+print('\n---------------Testing Instrument Validity---------------------------\n')
+critical_value_test(df_results, characteristics, figure_path)
+
+print('\n---------------Testing Hypothetical Index Fund---------------------------\n')
+test_index_fund(df_results, characteristics, params, figure_path)
+
 print('\n---------------Creating Figures---------------------------\n')
 graph_type_params(df_results, params, figure_path)
 
+graph_std_latent_demand(df_results, figure_path)
 print('\n---------------Finished---------------------------\n')
- 
+

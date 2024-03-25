@@ -4,9 +4,24 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="fix household">
+    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="gitignore">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/demand_system.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/demand_system.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/demand_system.py" beforeDir="false" afterPath="$PROJECT_DIR$/demand_system.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/beta_b_hml.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_b_hml.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/beta_b_mkt.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_b_mkt.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/beta_b_smb.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_b_smb.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/beta_const.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_const.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/beta_ln_me.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_ln_me.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/index_fund_beta_b_hml.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/index_fund_beta_b_hml.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/index_fund_beta_b_mkt.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/index_fund_beta_b_mkt.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/index_fund_beta_b_smb.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/index_fund_beta_b_smb.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/index_fund_beta_const.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/index_fund_beta_const.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/index_fund_beta_ln_me.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/index_fund_beta_ln_me.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/index_fund_latent_demand.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/index_fund_latent_demand.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/instrument_validity.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/instrument_validity.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/latent_demand.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/latent_demand.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/std_latent_demand.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/std_latent_demand.png" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -40,23 +55,23 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
-    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;Python.demand_system.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/wyatt/OneDrive - PennO365/WORKSPACE/py/921&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "Python.demand_system.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "C:/Users/wyatt/OneDrive - PennO365/WORKSPACE/py/premia",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -90,7 +105,19 @@
       <workItem from="1710527563755" duration="22343000" />
       <workItem from="1710570898334" duration="4042000" />
       <workItem from="1710612314102" duration="13019000" />
-      <workItem from="1710629479490" duration="12307000" />
+      <workItem from="1710629479490" duration="12458000" />
+      <workItem from="1710692347495" duration="210000" />
+      <workItem from="1710692579372" duration="232000" />
+      <workItem from="1710862694851" duration="5754000" />
+      <workItem from="1710889387790" duration="1054000" />
+      <workItem from="1711048019583" duration="246000" />
+      <workItem from="1711112087446" duration="4150000" />
+      <workItem from="1711171585237" duration="1490000" />
+      <workItem from="1711218537831" duration="653000" />
+      <workItem from="1711220329448" duration="1739000" />
+      <workItem from="1711222329146" duration="7791000" />
+      <workItem from="1711303057486" duration="249000" />
+      <workItem from="1711347783417" duration="8553000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit">
       <option name="closed" value="true" />
@@ -260,7 +287,39 @@
       <option name="project" value="LOCAL" />
       <updated>1710655993007</updated>
     </task>
-    <option name="localTasksCounter" value="22" />
+    <task id="LOCAL-00022" summary="todo fix binning">
+      <option name="closed" value="true" />
+      <created>1710662151167</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1710662151167</updated>
+    </task>
+    <task id="LOCAL-00023" summary="fix instrument">
+      <option name="closed" value="true" />
+      <created>1711115401206</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1711115401206</updated>
+    </task>
+    <task id="LOCAL-00024" summary="fix instrument">
+      <option name="closed" value="true" />
+      <created>1711116777946</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1711116777947</updated>
+    </task>
+    <task id="LOCAL-00025" summary="gitignore">
+      <option name="closed" value="true" />
+      <created>1711116840105</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1711116840105</updated>
+    </task>
+    <option name="localTasksCounter" value="26" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -290,9 +349,12 @@
     <MESSAGE value="more graphing" />
     <MESSAGE value="testing" />
     <MESSAGE value="fix household" />
-    <option name="LAST_COMMIT_MESSAGE" value="fix household" />
+    <MESSAGE value="todo fix binning" />
+    <MESSAGE value="fix instrument" />
+    <MESSAGE value="gitignore" />
+    <option name="LAST_COMMIT_MESSAGE" value="gitignore" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/demand_system_ipynb$demand_system.coverage" NAME="demand_system Coverage Results" MODIFIED="1710524646131" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/demand_system_ipynb$demand_system.coverage" NAME="demand_system Coverage Results" MODIFIED="1711222489108" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
