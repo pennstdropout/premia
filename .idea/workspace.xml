@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="need to fix zero_holding">
+    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="need to fix zero_holding (periods)?">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/demand_system.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/demand_system.ipynb" afterDir="false" />
     </list>
@@ -107,7 +107,9 @@
       <workItem from="1711567758160" duration="39879000" />
       <workItem from="1711685511071" duration="113000" />
       <workItem from="1711685646624" duration="94000" />
-      <workItem from="1711685826734" duration="1502000" />
+      <workItem from="1711685826734" duration="1537000" />
+      <workItem from="1711729810325" duration="2901000" />
+      <workItem from="1711735841242" duration="10014000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit">
       <option name="closed" value="true" />
@@ -333,7 +335,15 @@
       <option name="project" value="LOCAL" />
       <updated>1711686478186</updated>
     </task>
-    <option name="localTasksCounter" value="29" />
+    <task id="LOCAL-00029" summary="need to fix zero_holding (periods)?">
+      <option name="closed" value="true" />
+      <created>1711687388046</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1711687388046</updated>
+    </task>
+    <option name="localTasksCounter" value="30" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -368,7 +378,8 @@
     <MESSAGE value="gitignore" />
     <MESSAGE value="commit before progress report" />
     <MESSAGE value="need to fix zero_holding" />
-    <option name="LAST_COMMIT_MESSAGE" value="need to fix zero_holding" />
+    <MESSAGE value="need to fix zero_holding (periods)?" />
+    <option name="LAST_COMMIT_MESSAGE" value="need to fix zero_holding (periods)?" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/demand_system_ipynb$demand_system.coverage" NAME="demand_system Coverage Results" MODIFIED="1711685961615" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

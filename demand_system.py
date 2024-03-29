@@ -140,24 +140,18 @@ def clean_s34(df: pd.DataFrame, start_date: pd.Timestamp, end_date: pd.Timestamp
         'rdate',
         'typecode',
         'cusip',
-        'prc',
-        'shrout2',
         'shares'
     ]
     return (df[columns]
-            .dropna(how='any', subset=['cusip', 'shares'])
+            .dropna(how='any', subset=['mgrno', 'rdate', 'cusip', 'shares'])
             .rename(columns={
         'rdate': 'date',
         'mgrno': 'inv_id',
         'cusip': 'asset_id'})
             .assign(
-        date=lambda x: fix_date(x['date']),
-        backup_holding=lambda x: x['shares'] * x['prc'],
-        backup_me=lambda x: x['shrout2'] * x['prc'] * 1000,
-        typecode=lambda x: x['typecode'].fillna(0).astype(int))
+        date=lambda x: fix_date(x['date']))
             .loc[lambda x: (x['date'] >= start_date) & (x['date'] <= end_date)]
             .drop_duplicates(subset=['inv_id', 'date', 'asset_id'], keep='last')
-            .drop(columns=['prc', 'shrout2'])
             .set_index(['inv_id', 'date', 'asset_id']))
 
 
@@ -169,7 +163,7 @@ def clean_beta(df: pd.DataFrame, start_date: pd.Timestamp, end_date: pd.Timestam
         'b_smb',
         'b_hml'
     ]
-    offset = pd.DateOffset(months=6)
+    offset = 6
     return (df[columns]
             .dropna()
             .rename(columns={
@@ -191,6 +185,7 @@ def clean_security(df: pd.DataFrame, start_date: pd.Timestamp, end_date: pd.Time
         'trt1m',
         'cshoq'
     ]
+    offset = 6
     return (df[columns]
             .rename(columns={
         'LPERMNO': 'permno',
@@ -201,32 +196,38 @@ def clean_security(df: pd.DataFrame, start_date: pd.Timestamp, end_date: pd.Time
             .assign(
         shrout=lambda x: x.groupby('asset_id')['shrout'].ffill() * 1000000,
         asset_id=lambda x: x['asset_id'].apply(lambda s: s[:-1]),
-        date=lambda x: fix_date(x['date']))
+        date=lambda x: fix_date(x['date']) + offset)
             .dropna(how='any', subset=['asset_id', 'prc', 'shrout'])
             .loc[lambda x: (x['date'] >= start_date) & (x['date'] <= end_date)]
             .drop_duplicates(subset=['date', 'permno'], keep='last')
             .set_index(['date', 'permno']))
 
 
+# def fix_date(dates: pd.Series) -> pd.Series:
+#     return pd.to_datetime(dates) + pd.offsets.MonthEnd(0)
+
+
 def fix_date(dates: pd.Series) -> pd.Series:
-    return pd.to_datetime(dates) + pd.offsets.MonthEnd(0)
+    return pd.to_datetime(dates).dt.to_period(freq='M')
 
 
 # %%
 # Stocks Monthly
 
 def merge_assets_factors(df_assets: pd.DataFrame, df_factors: pd.DataFrame) -> pd.DataFrame:
-    df_merged = pd.merge(left=df_assets,
-                         right=df_factors,
-                         how='inner',
-                         left_index=True,
-                         right_index=True)
+    df_merged = pd.merge(
+        left=df_assets,
+        right=df_factors,
+        how='inner',
+        left_index=True,
+        right_index=True)
+
     df_merged_indexed = (df_merged
                          .reset_index()
+                         .assign(date=lambda x: x['date'].dt.asfreq('Q'))
                          .drop(columns=['permno'])
-                         .assign(date=lambda x: x['date'] - pd.offsets.BQuarterEnd())
-                         .drop_duplicates(subset=['date', 'asset_id'], keep='last')
                          .set_index(['date', 'asset_id']))
+
     log_asset_merge(df_merged_indexed)
     return df_merged_indexed
 
@@ -236,11 +237,45 @@ def merge_assets_factors(df_assets: pd.DataFrame, df_factors: pd.DataFrame) -> p
 def match_fund_manager(df_fund: pd.DataFrame, df_manager: pd.DataFrame, df_key: pd.DataFrame) -> pd.DataFrame:
     df_fund_manager = (df_manager
                        .reset_index()
-                       .assign(date=lambda x: x['date'] - pd.offsets.BQuarterEnd())
+                       .assign(date=lambda x: x['date'].dt.asfreq(freq='Q'))
                        .drop_duplicates(subset=['inv_id', 'date', 'asset_id'], keep='last')
                        .set_index(['inv_id', 'date', 'asset_id']))
+
     log_holding_merge(df_fund_manager)
     return df_fund_manager
+
+
+def construct_zero_holdings(df_fund_manager: pd.DataFrame, n_quarters: int) -> pd.DataFrame:
+    def calc_inv_obs(df: pd.DataFrame) -> pd.DataFrame:
+        date_diff = (df.groupby('inv_id')['date'].transform('max') - df['date']).apply(lambda x: x.n)
+        min_diff = np.minimum(date_diff, n_quarters) + 1
+        return min_diff
+
+    def calc_asset_obs(df: pd.DataFrame) -> pd.DataFrame:
+        date_diff = (df.sort_values('date')
+                     .groupby(['inv_id', 'asset_id'])
+                     ['date']
+                     .diff(periods=1)
+                     .fillna(pd.DateOffset(n=1))
+                     .apply(lambda x: x.n))
+        min_diff = np.minimum(date_diff, df['inv_obs'])
+        return min_diff.apply(lambda x: list(range(x)))
+
+    df_holding = (df_fund_manager
+                  .reset_index()
+                  .assign(
+        inv_obs=lambda x: calc_inv_obs(x),
+        asset_obs=lambda x: calc_asset_obs(x))
+                  .explode('asset_obs')
+                  .assign(
+        mask=lambda x: x['asset_obs'] == 0,
+        shares=lambda x: x['shares'] * x['mask'],
+        date=lambda x: x['date'] + x['asset_obs'])
+                  .drop(columns=['inv_obs', 'asset_obs', 'mask'])
+                  .set_index(['inv_id', 'date', 'asset_id']))
+
+    log_zero_holdings(df_holding)
+    return df_holding
 
 
 def merge_holding_factor(df_holding: pd.DataFrame, df_asset: pd.DataFrame) -> pd.DataFrame:
@@ -256,14 +291,12 @@ def merge_holding_factor(df_holding: pd.DataFrame, df_asset: pd.DataFrame) -> pd
     df_holding_factor = (df_merged
                          .assign(
         shares=lambda x: np.minimum(x['shares'], x['shrout']),
-        ccm_holding=lambda x: x['prc'] * x['shares'],
-        ccm_me=lambda x: x['prc'] * x['shrout'],
-        holding=lambda x: x['ccm_holding'].fillna(x['backup_holding']) / 1000000,
-        me=lambda x: x['ccm_me'].fillna(x['backup_me']) / 1000000,
-        typecode=lambda x: x['typecode'].fillna(0))
-                         .drop(columns=['ccm_holding', 'backup_holding', 'ccm_me', 'backup_me'])
+        holding=lambda x: x['prc'] * x['shares'] / 1000000,
+        me=lambda x: x['prc'] * x['shrout'] / 1000000,
+        typecode=lambda x: x['typecode'].fillna(0).astype(int))
                          .dropna(subset=['holding', 'me'])
                          .reorder_levels(['inv_id', 'date', 'asset_id']))
+
     log_holding_factor_merge(df_holding_factor)
     return df_holding_factor
 
@@ -288,6 +321,7 @@ def create_household_sector(df_holding_factor: pd.DataFrame) -> pd.DataFrame:
         typecode=0)
                     .set_index('inv_id', append=True)
                     .reorder_levels(['inv_id', 'date', 'asset_id']))
+
     log_household_sector(df_household)
     df_concat = pd.concat([df_holding_factor, df_household])
     return df_concat
@@ -303,45 +337,9 @@ def create_outside_asset(df_household: pd.DataFrame) -> (pd.DataFrame, pd.DataFr
         'holding': 'sum'})
                   .assign(asset_id='-1')
                   .set_index('asset_id', append=True))
+
     log_outside_asset(df_outside)
     return df_inside, df_outside
-
-
-def construct_zero_holdings(df_inside: pd.DataFrame, n_quarters: int) -> pd.DataFrame:
-    def calc_inv_obs(df: pd.DataFrame) -> pd.DataFrame:
-        date_diff = (df.groupby('inv_id')['date'].transform('max') - df['date']) / np.timedelta64(1, 'm')
-        clean_date_diff = date_diff.astype(int)
-        min_diff = np.minimum(clean_date_diff, n_quarters) + 1
-        return min_diff
-
-    def calc_asset_obs(df: pd.DataFrame) -> pd.DataFrame:
-        df = df.sort_values(['inv_id', 'asset_id', 'date'])
-        next_date = df.groupby(['inv_id', 'asset_id'])['date'].shift(-1)
-        date_diff = (next_date - df['date']) / np.timedelta64(1, 'm')
-        clean_date_diff = date_diff.fillna(1).astype(int)
-        min_diff = np.minimum(clean_date_diff, df['inv_obs'])
-        return min_diff
-
-    def date_offset(df: pd.Series) -> pd.Series:
-        return df.apply(lambda x: pd.offsets.MonthEnd(x))
-
-    df_holding = (df_inside
-                  .reset_index()
-                  .assign(
-        inv_obs=lambda x: calc_inv_obs(x),
-        asset_obs=lambda x: calc_asset_obs(x))
-                  .loc[lambda x: x.index.repeat(x['asset_obs'])]
-                  .assign(
-        n=lambda x: x.groupby(['inv_id', 'date', 'asset_id']).transform('cumcount'),
-        mask=lambda x: x['n'] <= 1,
-        shares=lambda x: x['shares'] * x['mask'],
-        holding=lambda x: x['holding'] * x['mask'],
-        date=lambda x: x['date'] + date_offset(x['n']))
-                  # .drop(columns=['inv_obs', 'asset_obs', 'mask'])
-                  .set_index(['inv_id', 'date', 'n', 'asset_id']))
-
-    log_zero_holdings(df_holding)
-    return df_holding
 
 
 # %%
@@ -451,6 +449,7 @@ pd.DataFrame, pd.DataFrame):
         'b_smb': 'last',
         'b_hml': 'last'})
                         .rename_axis(index={'bin': 'inv_id'}))
+
     log_bins(df_inside_binned, df_aum_binned)
     return df_inside_binned, df_aum_binned
 
@@ -476,6 +475,7 @@ def calc_inv_universe(df_holding: pd.DataFrame, n_quarters: int) -> pd.DataFrame
         df_inv_universe.loc[(inv_id, date), 'inv_universe'] = inv_uni
 
     df_inv_universe = df_inv_universe.assign(uni_size=lambda x: x['inv_universe'].apply(len))
+
     log_inv_universe(df_inv_universe)
     return df_inv_universe
 
@@ -526,6 +526,7 @@ def calc_instrument(df_inside_binned: pd.DataFrame, df_aum_binned: pd.DataFrame)
         iv_me=lambda x: x['equal_alloc'] - x['total_alloc'])
                      .drop(columns=['total_alloc']))
     print(df_instrument.describe())
+
     log_instrument(df_instrument)
     return df_instrument
 
@@ -1026,8 +1027,8 @@ figure_path = 'figures/'
 os.makedirs(output_path, exist_ok=True)
 os.makedirs(figure_path, exist_ok=True)
 
-start_date = pd.Timestamp('2012-01-01')
-end_date = pd.Timestamp('2017-12-31')
+start_date = pd.Period('2012-01')
+end_date = pd.Period('2017-12')
 
 characteristics = [
                       'b_mkt',
@@ -1073,8 +1074,12 @@ print('\n---------------Merging s12/s34 Holdings---------------------------\n')
 df_fund_manager = match_fund_manager(df_s12_clean, df_s34_clean, df_s12type5_clean)
 # df_fund_manager.to_csv(os.path.join(output_path, 'df_fund_manager.csv'))
 # %%
+print('\n---------------Constructing Zero Holdings---------------------------\n')
+df_holding = construct_zero_holdings(df_fund_manager, n_quarters)
+# df_holding.to_csv(os.path.join(output_path, 'df_holding.csv'))
+# %%
 print('\n---------------Merging Holdings/Factors---------------------------\n')
-df_holding_factor = merge_holding_factor(df_fund_manager, df_asset)
+df_holding_factor = merge_holding_factor(df_holding, df_asset)
 # df_holding_factor.to_csv(os.path.join(output_path, 'df_holding_factor.csv'))
 
 print('\n---------------Creating Household Sector---------------------------\n')
@@ -1085,10 +1090,6 @@ print('\n---------------Partitioning Outside Asset---------------------------\n'
 df_inside, df_outside = create_outside_asset(df_household)
 # df_inside.to_csv(os.path.join(output_path, 'df_inside.csv'))
 # df_outside.to_csv(os.path.join(output_path, 'df_outside.csv'))
-# %%
-print('\n---------------Constructing Zero Holdings---------------------------\n')
-df_holding = construct_zero_holdings(df_inside, n_quarters)
-# df_holding.to_csv(os.path.join(output_path, 'df_holding.csv'))
 # %%
 print('\n---------------Calculating Investor AUM---------------------------\n')
 df_inv_aum = calc_inv_aum(df_inside, df_outside)
