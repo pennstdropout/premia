@@ -4,24 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="commit before progress report">
+    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="need to fix zero_holding">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/demand_system.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/demand_system.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demand_system.py" beforeDir="false" afterPath="$PROJECT_DIR$/demand_system.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/beta_b_hml.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_b_hml.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/beta_b_mkt.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_b_mkt.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/beta_b_smb.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_b_smb.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/beta_const.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_const.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/beta_ln_me.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_ln_me.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/index_fund_beta_b_hml.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/index_fund_beta_b_hml.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/index_fund_beta_b_mkt.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/index_fund_beta_b_mkt.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/index_fund_beta_b_smb.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/index_fund_beta_b_smb.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/index_fund_beta_const.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/index_fund_beta_const.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/index_fund_beta_ln_me.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/index_fund_beta_ln_me.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/index_fund_latent_demand.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/index_fund_latent_demand.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/instrument_validity.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/instrument_validity.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/latent_demand.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/latent_demand.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/std_latent_demand.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/std_latent_demand.png" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -122,6 +107,7 @@
       <workItem from="1711567758160" duration="39879000" />
       <workItem from="1711685511071" duration="113000" />
       <workItem from="1711685646624" duration="94000" />
+      <workItem from="1711685826734" duration="1502000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit">
       <option name="closed" value="true" />
@@ -331,7 +317,23 @@
       <option name="project" value="LOCAL" />
       <updated>1711382323012</updated>
     </task>
-    <option name="localTasksCounter" value="27" />
+    <task id="LOCAL-00027" summary="need to fix zero_holding">
+      <option name="closed" value="true" />
+      <created>1711686458144</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1711686458144</updated>
+    </task>
+    <task id="LOCAL-00028" summary="need to fix zero_holding">
+      <option name="closed" value="true" />
+      <created>1711686478186</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1711686478186</updated>
+    </task>
+    <option name="localTasksCounter" value="29" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -365,9 +367,10 @@
     <MESSAGE value="fix instrument" />
     <MESSAGE value="gitignore" />
     <MESSAGE value="commit before progress report" />
-    <option name="LAST_COMMIT_MESSAGE" value="commit before progress report" />
+    <MESSAGE value="need to fix zero_holding" />
+    <option name="LAST_COMMIT_MESSAGE" value="need to fix zero_holding" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/demand_system_ipynb$demand_system.coverage" NAME="demand_system Coverage Results" MODIFIED="1711685671428" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/demand_system_ipynb$demand_system.coverage" NAME="demand_system Coverage Results" MODIFIED="1711685961615" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
