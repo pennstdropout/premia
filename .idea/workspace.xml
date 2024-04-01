@@ -4,9 +4,20 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="linear gmm">
+    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="todo fix bin">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/demand_system.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/demand_system.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/demand_system.py" beforeDir="false" afterPath="$PROJECT_DIR$/demand_system.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/beta_b_hml.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_b_hml.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/beta_b_mkt.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_b_mkt.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/beta_b_smb.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_b_smb.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/beta_const.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_const.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/beta_ln_me.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_ln_me.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/instrument_validity.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/instrument_validity.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/moment_condition.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/moment_condition.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/std_latent_demand.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/std_latent_demand.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/typecode_count.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/typecode_count.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/typecode_share.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/typecode_share.png" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,7 +59,7 @@
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/wyatt/OneDrive - PennO365/WORKSPACE/py/premia&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/wyatt/OneDrive - PennO365/WORKSPACE/py/mercari&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -115,7 +126,14 @@
       <workItem from="1711829229680" duration="4116000" />
       <workItem from="1711833522286" duration="16225000" />
       <workItem from="1711853383146" duration="1130000" />
-      <workItem from="1711854701733" duration="9514000" />
+      <workItem from="1711854701733" duration="9540000" />
+      <workItem from="1711901569756" duration="279000" />
+      <workItem from="1711901871102" duration="12482000" />
+      <workItem from="1711929925526" duration="2852000" />
+      <workItem from="1711934070706" duration="1161000" />
+      <workItem from="1711935253232" duration="1577000" />
+      <workItem from="1711938897887" duration="224000" />
+      <workItem from="1711939295338" duration="10874000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit">
       <option name="closed" value="true" />
@@ -405,7 +423,15 @@
       <option name="project" value="LOCAL" />
       <updated>1711861288766</updated>
     </task>
-    <option name="localTasksCounter" value="37" />
+    <task id="LOCAL-00037" summary="todo fix bin">
+      <option name="closed" value="true" />
+      <created>1711864481632</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1711864481632</updated>
+    </task>
+    <option name="localTasksCounter" value="38" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -447,9 +473,10 @@
     <MESSAGE value="postpost cleanup" />
     <MESSAGE value="post drop unused" />
     <MESSAGE value="linear gmm" />
-    <option name="LAST_COMMIT_MESSAGE" value="linear gmm" />
+    <MESSAGE value="todo fix bin" />
+    <option name="LAST_COMMIT_MESSAGE" value="todo fix bin" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/demand_system_ipynb$demand_system.coverage" NAME="demand_system Coverage Results" MODIFIED="1711761498202" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/demand_system_ipynb$demand_system.coverage" NAME="demand_system Coverage Results" MODIFIED="1711939032739" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
