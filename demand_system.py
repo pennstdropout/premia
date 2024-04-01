@@ -389,7 +389,8 @@ def agg_small_inv(df_inv_aum: pd.DataFrame) -> pd.DataFrame:
                       equal_alloc=lambda x: ~x['hh_mask'] * x['aum'] / (1 + x['x_holding']),
                       drop_mask=lambda x: x['small_mask'] | x['out_mask'])
               .loc[lambda x: ~x['drop_mask']]
-              .drop(columns=['Taum', 'Tout_aum', 'out_mask', 'out_holding', 'out_weight', 'small_mask', 'drop_mask']))
+              .drop(
+        columns=['Taum', 'Tout_aum', 'out_mask', 'out_holding', 'out_weight', 'small_mask', 'drop_mask', 'hh_mask']))
 
     log_agg_small_inv(df_agg)
     return df_agg
@@ -442,15 +443,13 @@ def dask_calc_instrument(df_binned: pd.DataFrame) -> pd.DataFrame:
     return df_instrument
 
 
-# %%
-# Estimation
-
 def calc_holding_weights(df_instrument: pd.DataFrame) -> pd.DataFrame:
     mask = (df_instrument['iv_me'] > 0)
 
     df_weights = (df_instrument.loc[mask]
                   .assign(ln_me=lambda x: np.log(x['me']),
                           ln_iv_me=lambda x: np.log(x['iv_me']),
+                          weight=lambda x: x['holding'] / x['aum'],
                           rweight=lambda x: x['holding'] / x['out_aum'],
                           ln_rweight=lambda x: np.log(x['rweight'].mask(x['rweight'] == 0, np.NaN)),
                           mean_ln_rweight=lambda x: x.groupby(['inv_id', 'date'])['ln_rweight'].transform('mean'),
@@ -462,68 +461,75 @@ def calc_holding_weights(df_instrument: pd.DataFrame) -> pd.DataFrame:
     return df_weights
 
 
+# %%
+# Estimation
+
 def bound_float(arr: np.array) -> float:
     ln_bound = 709.7827
     return np.minimum(np.maximum(arr, -ln_bound), ln_bound)
 
 
+def momcond_L(params: np.array, exog: np.array) -> np.array:
+    upper_bound = 0.999
+    exog = exog.T
+
+    beta_ln_me = params[0]
+    beta_characteristics = params[1:]
+
+    ln_me = exog[0]
+    mean_ln_rweight = exog[1]
+    arr_characteristics = exog[2:]
+
+    ln_me_term = (upper_bound - np.exp(-1 * beta_ln_me)) * ln_me
+    characteristics_term = np.dot(beta_characteristics, arr_characteristics)
+    pred_weight = ln_me_term + characteristics_term + mean_ln_rweight
+
+    return pred_weight
+
+
+def fit_inv_date_L(df_inv_date: pd.DataFrame, characteristics: list, params: list, ) -> gmm.GMMResults:
+    df_inv_date = df_inv_date.dropna(subset='ln_rweight')
+
+    exog = np.asarray(df_inv_date[['ln_me', 'mean_ln_rweight'] + characteristics])
+    instrument = np.asarray(df_inv_date[['ln_iv_me', 'mean_ln_rweight'] + characteristics])
+    n = exog.shape[0]
+    endog = np.asarray(df_inv_date['ln_rweight'] - df_inv_date['pct_uni_held'])
+    start_params = np.zeros(len(params))
+    w0inv = np.dot(instrument.T, instrument) / n
+
+    try:
+        model = gmm.NonlinearIVGMM(
+            endog=endog,
+            exog=exog,
+            instrument=instrument,
+            func=momcond_L)
+        result = model.fit(
+            start_params=start_params,
+            maxiter=0,
+            inv_weights=w0inv)
+        # log_results(result, params)
+        return result
+
+    except np.linalg.LinAlgError:
+        print('Linear Algebra Error')
+        return None
+
+
 def estimate_model_L(df_weights: pd.DataFrame, characteristics: list, params: list, min_n_holding: int) -> pd.DataFrame:
-    def momcond_L(params: np.array, exog: np.array) -> np.array:
-        upper_bound = 0.999
-        exog = exog.T
-
-        beta_ln_me = params[0]
-        beta_characteristics = params[1:]
-
-        ln_me = exog[0]
-        mean_ln_rweight = exog[1]
-        arr_characteristics = exog[2:]
-
-        ln_me_term = (upper_bound - np.exp(-1 * beta_ln_me)) * ln_me
-        characteristics_term = np.dot(beta_characteristics, arr_characteristics)
-        pred_weight = ln_me_term + characteristics_term + mean_ln_rweight
-
-        return pred_weight
-
-    def fit_inv_date_L(df_inv_date: pd.DataFrame) -> gmm.GMMResults:
-        df_inv_date = df_inv_date.dropna(subset='ln_rweight')
-
-        exog = np.asarray(df_inv_date[['ln_me', 'mean_ln_rweight'] + characteristics])
-        instrument = np.asarray(df_inv_date[['ln_iv_me', 'mean_ln_rweight'] + characteristics])
-        n = exog.shape[0]
-        endog = np.asarray(df_inv_date['ln_rweight'] - df_inv_date['pct_uni_held'])
-        start_params = np.zeros(len(params))
-        w0inv = np.dot(instrument.T, instrument) / n
-
-        try:
-            model = gmm.NonlinearIVGMM(
-                endog=endog,
-                exog=exog,
-                instrument=instrument,
-                func=momcond_L)
-            result = model.fit(
-                start_params=start_params,
-                maxiter=0,
-                inv_weights=w0inv)
-            # log_results(result, params)
-            return result
-
-        except np.linalg.LinAlgError:
-            print('Linear Algebra Error')
-            return None
-
-    mask = (df_weights['n_holding'] >= min_n_holding)
+    mask = df_weights['n_holding'] >= min_n_holding
 
     df_institutions = (df_weights
                        .loc[mask]
                        .set_index(['inv_id', 'date'])
-                       .assign(gmm_result=lambda x: x.groupby(['inv_id', 'date']).apply(fit_inv_date_L))
+                       .assign(
+        gmm_result=lambda x: x.groupby(['inv_id', 'date']).apply(lambda y: fit_inv_date_L(y, characteristics, params)))
                        .reset_index())
 
     df_bins = (df_weights
                .loc[~mask]
                .set_index(['bin', 'date'])
-               .assign(gmm_result=lambda x: x.groupby(['bin', 'date']).apply(fit_inv_date_L))
+               .assign(
+        gmm_result=lambda x: x.groupby(['bin', 'date']).apply(lambda y: fit_inv_date_L(y, characteristics, params)))
                .reset_index())
 
     df_model = pd.concat([df_institutions, df_bins])
@@ -531,64 +537,67 @@ def estimate_model_L(df_weights: pd.DataFrame, characteristics: list, params: li
     return df_model
 
 
-def estimate_model_NL(df_weights: pd.DataFrame, characteristics: list, params: list,
-                      min_n_holding: int) -> pd.DataFrame:
-    def momcond_NL(params: np.array, exog: np.array) -> np.array:
-        upper_bound = 0.9999
-        exog = exog.T
+def momcond_NL(params: np.array, exog: np.array) -> np.array:
+    upper_bound = 0.9999
+    exog = exog.T
 
-        beta_ln_me = bound_float(params[0])
-        beta_characteristics = params[1:]
+    beta_ln_me = bound_float(params[0])
+    beta_characteristics = params[1:]
 
-        ln_me = exog[0]
-        rweight = exog[1]
-        mean_ln_rweight = exog[2]
-        arr_characteristics = exog[3:]
+    ln_me = exog[0]
+    rweight = exog[1]
+    mean_ln_rweight = exog[2]
+    arr_characteristics = exog[3:]
 
-        ln_me_term = (upper_bound - np.exp(-1 * beta_ln_me)) * ln_me
-        characteristics_term = np.dot(beta_characteristics, arr_characteristics)
-        pred_ln_rweight = bound_float(ln_me_term + characteristics_term + mean_ln_rweight)
-        pred_rweight = np.exp(-1 * pred_ln_rweight)
+    ln_me_term = (upper_bound - np.exp(-1 * beta_ln_me)) * ln_me
+    characteristics_term = np.dot(beta_characteristics, arr_characteristics)
+    pred_ln_rweight = bound_float(ln_me_term + characteristics_term + mean_ln_rweight)
+    pred_rweight = np.exp(-1 * pred_ln_rweight)
 
-        return rweight * pred_rweight
+    return rweight * pred_rweight
 
-    def fit_inv_date_NL(df_inv_date: pd.DataFrame) -> gmm.GMMResults:
-        exog = np.asarray(df_inv_date[['ln_me', 'rweight', 'mean_ln_rweight'] + characteristics])
-        instrument = np.asarray(df_inv_date[['ln_iv_me', 'rweight', 'mean_ln_rweight'] + characteristics])
-        n = exog.shape[0]
-        endog = np.ones(n)
 
-        try:
-            model = gmm.NonlinearIVGMM(
-                endog=endog,
-                exog=exog,
-                instrument=instrument,
-                func=momcond_NL)
-            w0inv = np.dot(instrument.T, instrument) / n
-            start_params = np.zeros(len(params))
-            result = model.fit(
-                start_params=start_params,
-                maxiter=100,
-                inv_weights=w0inv)
-            # log_results(result, params)
-            return result
+def fit_inv_date_NL(df_inv_date: pd.DataFrame, characteristics: list, params: list) -> gmm.GMMResults:
+    exog = np.asarray(df_inv_date[['ln_me', 'rweight', 'mean_ln_rweight'] + characteristics])
+    instrument = np.asarray(df_inv_date[['ln_iv_me', 'rweight', 'mean_ln_rweight'] + characteristics])
+    n = exog.shape[0]
+    endog = np.ones(n)
 
-        except np.linalg.LinAlgError:
-            print('Linear Algebra Error')
-            return None
+    try:
+        model = gmm.NonlinearIVGMM(
+            endog=endog,
+            exog=exog,
+            instrument=instrument,
+            func=momcond_NL)
+        w0inv = np.dot(instrument.T, instrument) / n
+        start_params = np.zeros(len(params))
+        result = model.fit(
+            start_params=start_params,
+            maxiter=100,
+            inv_weights=w0inv)
+        # log_results(result, params)
+        return result
 
-    mask = (df_weights['n_holding'] >= min_n_holding)
+    except np.linalg.LinAlgError:
+        print('Linear Algebra Error')
+        return None
+
+
+def estimate_model_NL(df_weights: pd.DataFrame, characteristics: list, params: list) -> pd.DataFrame:
+    mask = df_weights['n_holding'] >= min_n_holding
 
     df_institutions = (df_weights
                        .loc[mask]
                        .set_index(['inv_id', 'date'])
-                       .assign(gmm_result=lambda x: x.groupby(['inv_id', 'date']).apply(fit_inv_date_NL))
+                       .assign(
+        gmm_result=lambda x: x.groupby(['inv_id', 'date']).apply(lambda y: fit_inv_date_L(y, characteristics, params)))
                        .reset_index())
 
     df_bins = (df_weights
                .loc[~mask]
                .set_index(['bin', 'date'])
-               .assign(gmm_result=lambda x: x.groupby(['bin', 'date']).apply(fit_inv_date_NL))
+               .assign(
+        gmm_result=lambda x: x.groupby(['bin', 'date']).apply(lambda y: fit_inv_date_L(y, characteristics, params)))
                .reset_index())
 
     df_model = pd.concat([df_institutions, df_bins])
@@ -614,7 +623,8 @@ def calc_latent_demand_L(df_model: pd.DataFrame, characteristics: list, params: 
                   .assign(beta_ln_me=lambda x: upper_bound - np.exp(-1 * x['beta_ln_me']),
                           beta_const=lambda x: x['beta_const'] + x['mean_ln_rweight'],
                           pred_ln_rweight=lambda x: np.einsum('ij,ij->i', x[['ln_me'] + characteristics], x[params]),
-                          latent_demand=lambda x: x['ln_rweight'] - x['pred_ln_rweight']))
+                          latent_demand=lambda x: x['ln_rweight'] - x['pred_ln_rweight'])
+                  .drop(columns=['pct_uni_held', 'gmm_result', 'pred_ln_rweight']))
 
     log_latent_demand(df_results)
     return df_results
@@ -623,12 +633,190 @@ def calc_latent_demand_L(df_model: pd.DataFrame, characteristics: list, params: 
 # %%
 # Liquidity
 
-def calc_price_elasticity(df_results: pd.DataFrame) -> pd.DataFrame:
-    def calc_coliquidity_matrix(df_date: pd.DataFrame) -> pd.Series:
-        return df_date
+def calc_coliquidity_matrix(df_date: pd.DataFrame) -> pd.Series:
+    df_asset_grouped = df_date.groupby('asset_id')
 
-    df_liquidity = df_results
+    n_assets = len(df_asset_grouped)
+
+    df_liquid = (df_date
+                 .assign(first=lambda x: df_asset_grouped.cumcount() == 0,
+                         total_holding=lambda x: df_asset_grouped['holding'].transform('sum'),
+                         share_of_holding=lambda x: x['holding'] / x['total_holding'],
+                         row=lambda x: df_asset_grouped.ngroup())
+                 .sort_values('row'))
+
+    Zmat = np.empty(shape=(n_assets, n_assets))
+    Amat = np.empty(shape=(n_assets, n_assets))
+
+    for col in range(n_assets):
+        df_liquid = df_liquid.assign(mask=lambda x: x['row'] == col,
+                                     mask_weight=lambda x: x['mask'] * x['weight'],
+                                     rcweight=lambda x: x['mask'] - x.groupby('inv_id')['mask_weight'].transform('max'),
+                                     Zcol=lambda x: x['beta_ln_me'] * x['share_of_holding'] * x['rcweight'],
+                                     Acol=lambda x: x['share_of_holding'] * x['rcweight'])
+        Zmat[col] = df_liquid.groupby('asset_id')['Zcol'].sum()
+        Amat[col] = df_liquid.groupby('asset_id')['Acol'].sum()
+
+    # types = df_date['typecode'].unique()
+    # for i, t in enumerate(types):
+    #     Bcol_name = 'Bcol_' + str(t)
+    #     mask = df_liquid['typecode'] == t
+    #     df_liquid[Bcol_name] = mask * df_liquid['Acol']
+    #
+    # for t in types:
+    #     Bcol_name = 'Bcol_' + str(t)
+    #
+    #     n_type = df_asset_grouped.apply(lambda x: (x['typecode'] == t).sum())
+    #     df_matrix[Bcol_name] = df_asset_grouped[Bcol_name].sum() / np.maximum(n_type, 1)
+
+    I = np.identity(n_assets)
+    liquidity_matrixA = np.linalg.solve(I - Zmat, Amat)
+    price_impact = np.diagonal(liquidity_matrixA)
+
+    idx = df_liquid.set_index('row')['asset_id'].to_dict()
+    sr_liquid = pd.Series(price_impact, index=idx, name='price_impact')
+
+    return sr_liquid
+
+
+def calc_price_elasticity(df_results: pd.DataFrame) -> pd.DataFrame:
+    mask = df_results['holding'] > 0
+
+    df_liquidity = (df_results
+                    .loc[mask]
+                    .groupby('date')
+                    .apply(calc_coliquidity_matrix))
+
+    log_liquidity(df_liquidity)
     return df_liquidity
+
+
+def graph_liquidity(df_liquidity: pd.DataFrame):
+    df_fig = (df_liquidity
+              .groupby('date')
+              .agg({'p10': lambda x: np.quantile(x['price_impact'], q=0.1),
+                    'p50': lambda x: np.quantile(x['price_impact'], q=0.5),
+                    'p90': lambda x: np.quantile(x['price_impact'], q=0.9)})
+              .stack()
+              .reset_index(name='stat'))
+
+    g = sns.relplot(data=df_fig,
+                    x='date',
+                    y='p10',
+                    hue='stat',
+                    kind='line')
+    g.set_axis_labels('Date', 'Price Impact')
+    g.legend()
+    g.despine()
+    plt.savefig(os.path.join(figure_path, f'price_elasticity.png'))
+    return df_liquidity
+
+
+# %%
+# Decomposition
+
+def equillibrium_loop(df_loop: pd.DataFrame) -> pd.DataFrame:
+    for i in range(1000):
+        df_loop = (df_loop
+                   .assign(weightN=lambda x: np.exp(x['loop_beta_ln_me'] * x['loop_ln_prc']) + x['loop_latent'],
+                           weightD=lambda x: x.groupby(['inv_id', 'date'])['weightN'].transform('sum'),
+                           weight=lambda x: x['weightN'] / (1 + x['weightD']),
+                           holding=lambda x: x['weight'] * x['loop_aum'],
+                           demand=lambda x: x.groupby(['inv_id', 'date'])['holding'].transform('sum'),
+                           Ddemand_a=lambda x: x['loop_beta_ln_me'] * x['loop_aum'] * x['weight'] * (1 - x['weight']) /
+                                               x['demand'],
+                           Ddemand_b=lambda x: x.groupby(['date', 'asset_id'])['Ddemand_a'].transform('sum'),
+                           Ddemand_c=lambda x: 1 / (1 - np.minimum(0, x['Ddemand_b'])),
+                           gap=lambda x: np.log(x['demand']) - x['loop_ln_price'] - x['loop_ln_shrout']))
+
+        gap = max(abs(df_loop['gap'].min()), abs(df_loop['gap'].max()))
+
+        if i == 999:
+            print(f'Equilibrium did not converge after 1000 iterations')
+            print(f'Gap:  ', gap)
+
+        if gap < 0.00001:
+            print(f'Equilibrium converged after {i} iterations')
+            df_loop = df_loop.assign(loop_ln_prc=lambda x: x.groupby('asset_id')['loop_ln_prc'].transform('min'))
+
+    return df_loop
+
+
+def run_counterfactuals(df_date: pd.DataFrame, characteristics: list, params: list) -> pd.DataFrame:
+    for i in range(1, 6):
+        if i <= 4:
+            df_date = df_date.assign(loop_ln_prc=lambda x: x['lag_ln_prc'],
+                                     loop_ln_shrout=lambda x: x['lag_ln_shrout'])
+        else:
+            df_date = df_date.assign(loop_ln_prc=lambda x: x['prc'],
+                                     loop_ln_shrout=lambda x: x['shrout'])
+
+        if i == 1:
+            for char in characteristics:
+                df_date['loop_' + char] = df_date['lag_' + char]
+        elif i <= 4:
+            for char in characteristics:
+                df_date['loop_' + char] = df_date['lag_' + char]
+        else:
+            for char in characteristics:
+                df_date['loop_' + char] = df_date[char]
+
+        if i <= 2:
+            df_date['loop_aum'] = df_date['lag_aum']
+        elif i <= 4:
+            df_date['loop_aum'] = df_date['aum']
+        else:
+            df_date['loop_aum'] = df_date['aum']
+
+        if i <= 3:
+            for param in params:
+                df_date['loop_' + param] = df_date['lag_' + param]
+        elif i <= 4:
+            for param in params:
+                df_date['loop_' + param] = df_date['lag_' + param]
+        else:
+            for param in params:
+                df_date['loop_' + param] = df_date[param]
+
+        loop_chars = ['loop_' + char for char in characteristics]
+        loop_params = ['loop_' + param for param in params]
+        if i <= 4:
+            df_date = df_date.assign(
+                loop_latent=np.einsum('ij,ij->i', df_date[['loop_ln_shrout'] + loop_chars], df_date[loop_params]) + x[
+                    'lag_latent_demand'])
+        else:
+            df_date = df_date.assign(
+                loop_latent=np.einsum('ij,ij->i', df_date[['loop_ln_shrout'] + loop_chars], df_date[loop_params]) + x[
+                    'latent_demand'])
+
+    return df_date
+
+
+def decompose_variance(df_results: pd.DataFrame, characteristics: list, params: list) -> pd.DataFrame:
+    mask = df_results['holding'] > 0
+
+    df_variance = (df_results
+                   .loc[mask]
+                   .assign(ln_prc=lambda x: np.log(x['prc']),
+                           ln_shrout=lambda x: np.log(x['shrout'])))
+
+    df_grouped = df_variance.groupby(['date', 'asset_id'])
+
+    df_variance = (df_variance
+                   .assign(lag_ln_prc=lambda x: df_grouped['ln_prc'].shift(4),
+                           lag_ln_shrout=lambda x: df_grouped['ln_shrout'].shift(4),
+                           lag_aum=lambda x: df_grouped['aum'].shift(4),
+                           lag_latent=lambda x: df_grouped['latent_demand'].shift(4), )
+
+                   for char in characteristics:
+    name = 'lag_' + char
+    df_variance[name] = df_variance.groupby(['date', 'asset_id'])[char].shift(4)
+
+    return df_variance
+
+
+# %%
+# Predictability
 
 
 # %%
@@ -646,12 +834,20 @@ def typecode_share_counts(df_figure: pd.DataFrame, figure_path: str):
                      .agg({'aum': 'sum', 'n_holding': 'count'})
                      .assign(share=lambda x: x['aum'] / x['aum'].groupby('date').transform('sum')))
 
-    g = sns.relplot(data=df_type_share, x='date', y='n_holding', hue='typecode', kind='line')
+    g = sns.relplot(data=df_type_share,
+                    x='date',
+                    y='n_holding',
+                    hue='typecode',
+                    kind='line')
     g.set_axis_labels('Date', 'Number of Investors')
     g.despine()
     plt.savefig(os.path.join(figure_path, f'typecode_count.png'))
 
-    g = sns.relplot(data=df_type_share, x='date', y='share', hue='typecode', kind='line')
+    g = sns.relplot(data=df_type_share,
+                    x='date',
+                    y='share',
+                    hue='typecode',
+                    kind='line')
     g.set_axis_labels('Date', 'Share of AUM')
     g.despine()
     plt.savefig(os.path.join(figure_path, f'typecode_share.png'))
@@ -659,7 +855,7 @@ def typecode_share_counts(df_figure: pd.DataFrame, figure_path: str):
     return df_inv_aum
 
 
-def check_moment_condition(df_figures: pd.DataFrame, min_n_holding: int, moment: int, ):
+def check_moment_condition(df_figures: pd.DataFrame, min_n_holding: int):
     mask = df_figures['n_holding'] >= min_n_holding
     df_mom = (df_figures
               .loc[mask]
@@ -667,7 +863,7 @@ def check_moment_condition(df_figures: pd.DataFrame, min_n_holding: int, moment:
               .agg({'latent_demand': 'mean'}))
 
     epsilon = 0.01
-    mask = (df_mom['latent_demand'] > moment - epsilon) & (df_mom['latent_demand'] < moment + epsilon)
+    mask = (df_mom['latent_demand'] > -epsilon) & (df_mom['latent_demand'] < epsilon)
     valid_rate = len(df_mom[mask]) / len(df_mom)
     print(f'Percentage of valid moments:  {100 * valid_rate:.4f}%')
 
@@ -709,14 +905,11 @@ def critical_value_test(df_figures: pd.DataFrame, characteristics: list, min_n_h
              .groupby('date')
              .min())
 
-    g = sns.relplot(
-        data=df_iv,
-        x='date',
-        y='t_stat',
-        kind='line')
-    g.refline(
-        y=4.05,
-        linestyle='--')
+    g = sns.relplot(data=df_iv,
+                    x='date',
+                    y='t_stat',
+                    kind='line')
+    g.refline(y=4.05, linestyle='--')
     g.set_axis_labels('Date', 'First stage t-statistic')
     g.despine()
     plt.savefig(os.path.join(figure_path, f'instrument_validity.png'))
@@ -724,15 +917,18 @@ def critical_value_test(df_figures: pd.DataFrame, characteristics: list, min_n_h
     return df_figures
 
 
-def test_index_fund(df_figures: pd.DataFrame, characteristics: list, params: list, min_n_holding: int,
-                    indexfund_id: int, figure_path: str):
+def test_index_fund(df_figures: pd.DataFrame, characteristics: list, params: list, indexfund_id: int, figure_path: str):
     mask = df_figures['inv_id'] == indexfund_id
     df_index_fund = (df_figures
     .assign(ln_rweight=lambda x: x['ln_me'] + x['mean_ln_rweight'],
             pct_uni_held=1)
     .loc[mask])
 
-    df_index_fund_model = estimate_model_L(df_index_fund, characteristics, params, min_n_holding)
+    df_index_fund_model = (df_index_fund
+                           .set_index(['inv_id', 'date'])
+                           .assign(
+        gmm_result=lambda x: x.groupby(['inv_id', 'date']).apply(lambda y: fit_inv_date_L(y, characteristics, params)))
+                           .reset_index())
     df_index_fund_result = calc_latent_demand_L(df_index_fund_model, characteristics, params)
     cols = params + ['latent_demand']
     for param in cols:
@@ -1012,8 +1208,23 @@ def log_latent_demand(df_results: pd.DataFrame):
     print('Number of investors:  ', df_results['inv_id'].nunique())
 
 
+def log_liquidity(df_liquidity: pd.DataFrame):
+    print()
+    print('Calculated price elasticity')
+
+
+def log_variance(df_variance: pd.DataFrame):
+    print()
+    print('Decomposed variance')
+
+
+def log_predictability(df_predictability: pd.DataFrame):
+    print()
+    print('Tested return predictability')
+
+
 # %%
-def equity():
+def main():
     client = Client()
 
     dfs = pandas_read(input_path)
@@ -1039,17 +1250,18 @@ def equity():
                   .pipe(agg_small_inv)
                   .pipe(bin_inv, min_n_holding)
                   .pipe(calc_instrument)
-                  .pipe(calc_holding_weights, min_n_holding)
+                  .pipe(calc_holding_weights)
                   .pipe(estimate_model_L, characteristics, params, min_n_holding)
                   .pipe(calc_latent_demand_L, characteristics, params))
+    return df_results
     df_results.to_csv(os.path.join(output_path, 'df_results.csv'))
 
     df_figures = (df_results
                   .pipe(clean_figures)
                   .pipe(typecode_share_counts, figure_path)
-                  .pipe(check_moment_condition, min_n_holding, 0)
+                  .pipe(check_moment_condition, min_n_holding)
                   .pipe(critical_value_test, characteristics, figure_path)
-                  .pipe(test_index_fund, characteristics, params, min_n_holding, figure_path)
+                  .pipe(test_index_fund, characteristics, params, figure_path)
                   .pipe(graph_type_params, params, figure_path)
                   .pipe(graph_std_latent_demand, figure_path))
 
@@ -1087,5 +1299,111 @@ dict_typecode = {
 min_n_holding = 1000
 n_quarters = 11
 indexfund_id = 90457
+# %%
+df_result = main()
+# %%
+df_liquidity = calc_price_elasticity(df_result)
+# %%
+df_liquidity.describe()
+# %%
+print('\n---------------Starting Imports---------------------------\n')
+dfs = pandas_read(input_path)
+# %%
+print('\n---------------Starting Cleaning---------------------------\n')
+df_s12_clean, df_s12type5_clean, df_s34_clean, df_beta_clean, df_security_clean = clean_imports(
+    *dfs,
+    start_date,
+    end_date
+)
 
-equity()
+# df_s12_clean.to_csv(os.path.join(output_path, 'df_s12_clean.csv'))
+# df_s12type5_clean.to_csv(os.path.join(output_path, 'df_s12type5_clean.csv'))
+# df_s34_clean.to_csv(os.path.join(output_path, 'df_s34_clean.csv'))
+# df_beta_clean.to_csv(os.path.join(output_path, 'df_beta_clean.csv'))
+# df_security_clean.to_csv(os.path.join(output_path, 'df_security_clean.csv'))
+# %%
+print('\n---------------Merging Assets/Factors---------------------------\n')
+df_asset = merge_assets_factors(df_security_clean, df_beta_clean)
+# df_asset.to_csv(os.path.join(output_path, 'df_asset.csv'))
+
+print('\n---------------Merging s12/s34 Holdings---------------------------\n')
+df_fund_manager = match_fund_manager(df_s12_clean, df_s34_clean, df_s12type5_clean)
+# df_fund_manager.to_csv(os.path.join(output_path, 'df_fund_manager.csv'))
+# %%
+print('\n---------------Constructing Zero Holdings---------------------------\n')
+df_holding = construct_zero_holdings(df_fund_manager, n_quarters)
+# df_holding.to_csv(os.path.join(output_path, 'df_holding.csv'))
+# %%
+print('\n---------------Merging Holdings/Factors---------------------------\n')
+df_holding_factor = merge_holding_factor(df_holding, df_asset)
+# df_holding_factor.to_csv(os.path.join(output_path, 'df_holding_factor.csv'))
+# %%
+print('\n---------------Dropping Mangers/Assets Without Holdings---------------------------\n')
+df_dropped = drop_unsused_inv_asset(df_holding_factor)
+# df_holding.to_csv(os.path.join(output_path, 'df_holding.csv'))
+
+print('\n---------------Creating Household Sector---------------------------\n')
+df_household = create_household_sector(df_dropped)
+# df_household.to_csv(os.path.join(output_path, 'df_household.csv'))
+
+print('\n---------------Partitioning Outside Asset---------------------------\n')
+df_outside = partition_outside_asset(df_household)
+# df_outside.to_csv(os.path.join(output_path, 'df_outside.csv'))
+# %%
+print('\n---------------Calculating Investor AUM---------------------------\n')
+df_inv_aum = calc_inv_aum(df_outside)
+# df_inv_aum.to_csv(os.path.join(output_path, 'df_inv_aum.csv'))
+# %%
+print('\n---------------Aggregating Small Investors---------------------------\n')
+df_agg = agg_small_inv(df_inv_aum)
+# df_agg.to_csv(os.path.join(output_path, 'df_agg.csv'))
+# %%
+print('\n---------------Pooling Investors By Type/Size---------------------------\n')
+df_binned = bin_inv(df_agg, min_n_holding)
+# df_binned.to_csv(os.path.join(output_path, 'df_binned.csv'))
+# %%
+print('\n---------------Calculating Instrument---------------------------\n')
+df_instrument = calc_instrument(df_binned)
+# df_instrument.to_csv(os.path.join(output_path, 'df_instrument.csv'))
+# %%
+print('\n---------------Calculating Holding Weights---------------------------\n')
+df_weights = calc_holding_weights(df_instrument)
+# df_weights.to_csv(os.path.join(output_path, 'df_weights.csv'))
+# %%
+print('\n---------------Estimating Demand System---------------------------\n')
+df_model = estimate_model_L(df_weights, characteristics, params, min_n_holding)
+# df_model.to_csv(os.path.join(output_path, 'df_model.csv'))
+# %%
+print('\n---------------Calculating Latent Demand---------------------------\n')
+df_results = calc_latent_demand_L(df_model, characteristics, params)
+# df_results.to_csv(os.path.join(output_path, 'df_results.csv'))
+# %%
+print('\n---------------Testing Moment Condition---------------------------\n')
+# df_figures = clean_figures(df_results)
+# _ = check_moment_condition(df_figures, 0, min_n_holding)
+# %%
+print('\n---------------Investors by Typecode---------------------------\n')
+# _ = typecode_share_counts(df_figures, figure_path)
+# %%
+print('\n---------------Testing Instrument Validity---------------------------\n')
+# _ = critical_value_test(df_figures, characteristics, min_n_holding, figure_path)
+# %%
+print('\n---------------Testing Hypothetical Index Fund---------------------------\n')
+# _ = test_index_fund(df_figures, characteristics, params, indexfund_id, figure_path)
+# %%
+print('\n---------------Parameters By Typecode---------------------------\n')
+# _ = graph_type_params(df_figures, params, figure_path)
+# %%
+print('\n---------------Standard Deviation of Latent Demand By Typecode---------------------------\n')
+# _ = graph_std_latent_demand(df_figures, figure_path)
+# %%
+print('\n---------------Calculating Price Elasticity---------------------------\n')
+df_liquidity = calc_price_elasticity(df_results).pipe(graph_liquidity)
+# %%
+print('\n---------------Testing Predictability---------------------------\n')
+
+# %%
+print('\n---------------Simulating Monetary Policy Shock---------------------------\n')
+
+# %%
+print('\n---------------Finished---------------------------\n')

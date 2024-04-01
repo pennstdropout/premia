@@ -4,20 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="todo fix bin">
+    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="first pass liquidity">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/demand_system.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/demand_system.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demand_system.py" beforeDir="false" afterPath="$PROJECT_DIR$/demand_system.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/beta_b_hml.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_b_hml.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/beta_b_mkt.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_b_mkt.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/beta_b_smb.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_b_smb.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/beta_const.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_const.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/beta_ln_me.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_ln_me.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/instrument_validity.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/instrument_validity.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/moment_condition.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/moment_condition.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/std_latent_demand.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/std_latent_demand.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/typecode_count.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/typecode_count.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/typecode_share.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/typecode_share.png" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -133,7 +122,7 @@
       <workItem from="1711934070706" duration="1161000" />
       <workItem from="1711935253232" duration="1577000" />
       <workItem from="1711938897887" duration="224000" />
-      <workItem from="1711939295338" duration="10874000" />
+      <workItem from="1711939295338" duration="21807000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit">
       <option name="closed" value="true" />
@@ -431,7 +420,15 @@
       <option name="project" value="LOCAL" />
       <updated>1711864481632</updated>
     </task>
-    <option name="localTasksCounter" value="38" />
+    <task id="LOCAL-00038" summary="first pass liquidity">
+      <option name="closed" value="true" />
+      <created>1711951500591</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1711951500591</updated>
+    </task>
+    <option name="localTasksCounter" value="39" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -449,7 +446,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="initial commit" />
     <MESSAGE value="next commit" />
     <MESSAGE value="back" />
     <MESSAGE value="binn" />
@@ -474,7 +470,8 @@
     <MESSAGE value="post drop unused" />
     <MESSAGE value="linear gmm" />
     <MESSAGE value="todo fix bin" />
-    <option name="LAST_COMMIT_MESSAGE" value="todo fix bin" />
+    <MESSAGE value="first pass liquidity" />
+    <option name="LAST_COMMIT_MESSAGE" value="first pass liquidity" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/demand_system_ipynb$demand_system.coverage" NAME="demand_system Coverage Results" MODIFIED="1711939032739" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
