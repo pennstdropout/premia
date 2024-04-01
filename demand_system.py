@@ -635,8 +635,8 @@ def calc_latent_demand_L(df_model: pd.DataFrame, characteristics: list, params: 
 
 def calc_coliquidity_matrix(df_date: pd.DataFrame) -> pd.Series:
     df_asset_grouped = df_date.groupby('asset_id')
-
     n_assets = len(df_asset_grouped)
+    print(n_assets)
 
     df_liquid = (df_date
                  .assign(first=lambda x: df_asset_grouped.cumcount() == 0,
@@ -656,6 +656,7 @@ def calc_coliquidity_matrix(df_date: pd.DataFrame) -> pd.Series:
                                      Acol=lambda x: x['share_of_holding'] * x['rcweight'])
         Zmat[col] = df_liquid.groupby('asset_id')['Zcol'].sum()
         Amat[col] = df_liquid.groupby('asset_id')['Acol'].sum()
+        print('Added asset ', col)
 
     # types = df_date['typecode'].unique()
     # for i, t in enumerate(types):
@@ -1302,7 +1303,7 @@ indexfund_id = 90457
 # %%
 df_result = main()
 # %%
-df_liquidity = calc_price_elasticity(df_result)
+df_liquidity = calc_price_elasticity(df_result.loc[df_result['date'] == df_result['date'].median()])
 # %%
 df_liquidity.describe()
 # %%

@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="first pass liquidity">
+    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="todo liquidity">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/demand_system.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/demand_system.ipynb" afterDir="false" />
     </list>
@@ -122,7 +122,7 @@
       <workItem from="1711934070706" duration="1161000" />
       <workItem from="1711935253232" duration="1577000" />
       <workItem from="1711938897887" duration="224000" />
-      <workItem from="1711939295338" duration="21807000" />
+      <workItem from="1711939295338" duration="26704000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit">
       <option name="closed" value="true" />
@@ -428,7 +428,15 @@
       <option name="project" value="LOCAL" />
       <updated>1711951500591</updated>
     </task>
-    <option name="localTasksCounter" value="39" />
+    <task id="LOCAL-00039" summary="todo liquidity">
+      <option name="closed" value="true" />
+      <created>1711963298723</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1711963298723</updated>
+    </task>
+    <option name="localTasksCounter" value="40" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -446,7 +454,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="next commit" />
     <MESSAGE value="back" />
     <MESSAGE value="binn" />
     <MESSAGE value="commit before graphs" />
@@ -471,7 +478,8 @@
     <MESSAGE value="linear gmm" />
     <MESSAGE value="todo fix bin" />
     <MESSAGE value="first pass liquidity" />
-    <option name="LAST_COMMIT_MESSAGE" value="first pass liquidity" />
+    <MESSAGE value="todo liquidity" />
+    <option name="LAST_COMMIT_MESSAGE" value="todo liquidity" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/demand_system_ipynb$demand_system.coverage" NAME="demand_system Coverage Results" MODIFIED="1711939032739" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
