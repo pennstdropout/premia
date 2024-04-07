@@ -4,13 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="todo expand data">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/FED/fed_treasury_holding.py" beforeDir="false" afterPath="$PROJECT_DIR$/data/FED/fed_treasury_holding.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demand_system_bonds.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/demand_system_bonds.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/instrument_validity.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/instrument_validity.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/typecode_count.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/typecode_count.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/typecode_share.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/typecode_share.png" afterDir="false" />
+    <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="pre final run">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -50,6 +45,7 @@
     "ASKED_ADD_EXTERNAL_FILES": "true",
     "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "Python.demand_system.executor": "Run",
+    "Python.demand_system_bonds.executor": "Run",
     "Python.fed_treasury_holding (1).executor": "Run",
     "Python.soma_api.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
@@ -72,7 +68,7 @@
       <recent name="C:\Users\wyatt\OneDrive - PennO365\WORKSPACE\py\premia\data\FED" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.fed_treasury_holding (1)">
+  <component name="RunManager">
     <configuration name="fed_treasury_holding (1)" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="premia" />
       <option name="ENV_FILES" value="" />
@@ -199,7 +195,7 @@
       <workItem from="1712263032410" duration="14999000" />
       <workItem from="1712357098705" duration="962000" />
       <workItem from="1712361755995" duration="9169000" />
-      <workItem from="1712410993842" duration="48223000" />
+      <workItem from="1712410993842" duration="57816000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit">
       <option name="closed" value="true" />
@@ -561,7 +557,31 @@
       <option name="project" value="LOCAL" />
       <updated>1712472032370</updated>
     </task>
-    <option name="localTasksCounter" value="46" />
+    <task id="LOCAL-00046" summary="todo fix graphs">
+      <option name="closed" value="true" />
+      <created>1712510682502</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1712510682502</updated>
+    </task>
+    <task id="LOCAL-00047" summary="todo fix graphs">
+      <option name="closed" value="true" />
+      <created>1712510689149</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1712510689149</updated>
+    </task>
+    <task id="LOCAL-00048" summary="pre final run">
+      <option name="closed" value="true" />
+      <created>1712522981311</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1712522981311</updated>
+    </task>
+    <option name="localTasksCounter" value="49" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -579,8 +599,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="initial graphs" />
-    <MESSAGE value="more graphs" />
     <MESSAGE value="initial file" />
     <MESSAGE value="more graphing" />
     <MESSAGE value="testing" />
@@ -604,11 +622,14 @@
     <MESSAGE value="fed" />
     <MESSAGE value="todo fix factors" />
     <MESSAGE value="todo expand data" />
-    <option name="LAST_COMMIT_MESSAGE" value="todo expand data" />
+    <MESSAGE value="todo fix graphs" />
+    <MESSAGE value="pre final run" />
+    <option name="LAST_COMMIT_MESSAGE" value="pre final run" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/demand_system_ipynb$fed_treasury_holding__1_.coverage" NAME="fed_treasury_holding (1) Coverage Results" MODIFIED="1712495695308" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data/FED" />
     <SUITE FILE_PATH="coverage/demand_system_ipynb$demand_system.coverage" NAME="demand_system Coverage Results" MODIFIED="1711939032739" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/demand_system_ipynb$demand_system_bonds.coverage" NAME="demand_system_bonds Coverage Results" MODIFIED="1712522251429" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/demand_system_ipynb$soma_api.coverage" NAME="soma_api Coverage Results" MODIFIED="1712356391379" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data/FED" />
   </component>
 </project>

@@ -1,6 +1,7 @@
 # %%
 import pandas as pd
 import numpy as np
+import numpy_financial as npf
 from matplotlib import pyplot as plt
 import seaborn as sns
 import dask.dataframe as dd
@@ -23,16 +24,12 @@ def read_emaxx(input_path: str, start_date: pd.Period, end_date: pd.Period):
         'FUNDID',
         'BOOL',
         'PARAMT',
-        # 'FIRMID',
     ]
     df_emaxx_holding = []
 
     fund_cols = [
         'FUNDID',
         'FUNDCLASS',
-        # 'FUNDNAME',
-        # 'SECTOR',
-        # 'FIRMID',
     ]
     df_emaxx_fund = []
 
@@ -46,7 +43,6 @@ def read_emaxx(input_path: str, start_date: pd.Period, end_date: pd.Period):
 
     issuer_cols = [
         'ISSUERCUS',
-        # 'ISSUERNAM',
         'GEOCODE',
         'ENTITY',
         'STATE'
@@ -127,10 +123,7 @@ def pandas_read_bond(path: str, start_date: pd.Period, end_date: pd.Period):
     log_import_emaxx_broktran(df_emaxx_broktran)
 
     fed_cols = ['cusip',
-                # 'maturityDate',
-                # 'coupon',
                 'parValue',
-                # 'percentOutstanding',
                 'date']
     df_fed = pd.read_csv(filepath_or_buffer=os.path.join(path, 'FED', 'fed_treasury_holding.csv'),
                          usecols=fed_cols)
@@ -159,11 +152,11 @@ def pandas_read_bond(path: str, start_date: pd.Period, end_date: pd.Period):
                  'BOND_TYPE',
                  'AMOUNT_OUTSTANDING',
                  'MATURITY',
-                 # 'DURATION',
                  'COUPON',
                  'T_Yld_Pt',
                  'PRICE_EOM',
-                 # 'RET_EOM',
+                 'R_SP',
+                 'N_SP',
                  'T_Spread']
     df_wrds_bond = pd.read_csv(filepath_or_buffer=os.path.join(path, 'wrds_bond.csv'),
                                usecols=wrds_cols,
@@ -312,7 +305,8 @@ def clean_crsp(df_crsp: pd.DataFrame, start_date: pd.Period, end_date: pd.Period
                              'tmtotout': 'amtout'})
             .loc[lambda x: (x['itype'] >= 1) & (x['itype'] <= 4)]
             .assign(date=lambda x: fix_date_quarterly(x['date']),
-                    ytm=lambda x: x['ytm'] * 100)
+                    ytm=lambda x: x['ytm'] * 100,
+                    credit_rating=1)
             .loc[lambda x: (x['date'] >= start_date) & (x['date'] <= end_date)]
             .dropna(subset=['asset_id', 'prc', 'amtout'])
             .sort_values('date')
@@ -325,18 +319,19 @@ def clean_wrds_bond(df_wrds_bond: pd.DataFrame, start_date: pd.Period, end_date:
     df_wrds_bond.columns = df_wrds_bond.columns.str.lower()
     return (df_wrds_bond
             .loc[lambda x: x['bond_type'] != 'CCOV']
-            .drop(columns='bond_type')
             .rename(columns={'cusip': 'asset_id',
                              'price_eom': 'prc',
                              't_yld_pt': 'ytm',
                              't_spread': 'spread',
+                             'n_sp': 'credit_rating',
                              'amount_outstanding': 'amtout'})
             .assign(date=lambda x: fix_date_quarterly(x['date']),
                     asset_id=lambda x: x['asset_id'].apply(lambda s: s[:-1]),
                     spread=lambda x: x['spread'].replace('%', '', regex=True).astype(float),
-                    t_mask=0)
+                    is_treasury=0)
             .loc[lambda x: (x['date'] >= start_date) & (x['date'] <= end_date)]
             .dropna(subset=['asset_id', 'prc'])
+            .drop(columns=['bond_type'])
             .sort_values('date')
             .drop_duplicates(subset=['date', 'asset_id'])
             .reset_index(drop=True))
@@ -368,7 +363,7 @@ def calc_factors(df_crsp_clean: pd.DataFrame, df_treasury_clean: pd.DataFrame, e
     #                     on=['asset_id', 'date']))
     df_factor = (df_crsp_clean
                  .assign(spread=lambda x: 100 * (x['tmask'] - x['tmbid']) / x['tmask'],
-                         t_mask=1)
+                         is_treasury=1)
                  .drop(columns=['tmask', 'tmbid']))
 
     log_factors(df_factor)
@@ -437,6 +432,7 @@ def merge_holding_factor(df_holding_fed: pd.DataFrame, df_asset: pd.DataFrame) -
                          .assign(holding=lambda x: x['prc'] * x['paramt'] / 100000,
                                  q_date=lambda x: pd.to_datetime(x['q_date'], format='%Y%m%d'),
                                  t_maturity=lambda x: (x['maturity'] - x['q_date']).dt.days.fillna(0) / 30.5)
+                         .loc[lambda x: x['amtout'] > 0]
                          .dropna(subset=['holding'])
                          .drop(columns=['q_date', 'maturity']))
 
@@ -493,9 +489,8 @@ def get_treasury_id(df_emaxx_issuer_clean: pd.DataFrame) -> np.array:
 
 def partition_outside_asset(df_household: pd.DataFrame) -> pd.DataFrame:
     df_outside = (df_household
-                  .assign(out_mask=lambda x: x.isna().any(axis=1) | (x['t_mask'] == 0),
-                          out_holding=lambda x: x['holding'] * x['out_mask'])
-                  .drop(columns='t_mask'))
+                  .assign(out_mask=lambda x: x.isna().any(axis=1),
+                          out_holding=lambda x: x['holding'] * x['out_mask']))
 
     log_outside_asset(df_outside)
     return df_outside
@@ -505,7 +500,8 @@ def calc_inv_aum(df_outside: pd.DataFrame) -> pd.DataFrame:
     df_inv_aum = (df_outside
                   .assign(aum=lambda x: x.groupby(['inv_id', 'date'])['holding'].transform('sum'))
                   .loc[lambda x: x['aum'] > 0]
-                  .assign(out_aum=lambda x: x.groupby(['inv_id', 'date'])['out_holding'].transform('sum'),
+                  .assign(out_aum=lambda x: x.groupby(['inv_id', 'date'])['out_holding'].transform('sum'))
+                  .assign(out_aum=lambda x: x['out_aum'].mask(x['typecode'] == 'FED', 1),
                           out_weight=lambda x: x['out_aum'] / x['aum']))
 
     log_inv_aum(df_inv_aum)
@@ -516,6 +512,7 @@ def agg_small_inv(df_inv_aum: pd.DataFrame) -> pd.DataFrame:
     df_agg = (df_inv_aum
               .assign(small_mask=lambda x: (x['aum'] < 10) | (x['out_weight'] == 0) | (x['out_weight'] == 1),
                       inv_id=lambda x: ~x['small_mask'] * x['inv_id'],
+                      typecode=lambda x: x['typecode'].mask(x['small_mask'], 'HOU'),
                       hh_mask=lambda x: x['inv_id'] == 0))
 
     df_grouped = df_agg.groupby(['inv_id', 'date', 'asset_id'])
@@ -567,10 +564,18 @@ def bin_inv(df_inv_aum: pd.DataFrame, min_n_holding: int) -> (pd.DataFrame, pd.D
     return df_binned
 
 
+def calc_ytm(coupon_rate: pd.Series, maturity: pd.Series, prc: pd.Series, par: pd.Series) -> pd.Series:
+    coupon = coupon_rate * par / 200
+    appreciation = (par - prc) / maturity
+    average_prc = (par + prc) / 2
+    return (coupon + appreciation) / average_prc
+
+
 def calc_instrument(df_binned: pd.DataFrame) -> pd.DataFrame:
     df_instrument = (df_binned
                      .assign(total_alloc=lambda x: x.groupby(['date', 'asset_id'])['equal_alloc'].transform('sum'),
-                             iv_me=lambda x: x['total_alloc'] - x['equal_alloc'])
+                             iv_me=lambda x: x['total_alloc'] - x['equal_alloc'],
+                             iv_ytm=lambda x: calc_ytm(x['coupon'], x['t_maturity'], x['iv_me'], x['amtout']))
                      .drop(columns=['total_alloc', 'equal_alloc']))
 
     log_instrument(df_instrument)
@@ -638,30 +643,33 @@ def momcond_L(params: np.array, exog: np.array) -> np.array:
 
 def fit_inv_date_L(df_inv_date: pd.DataFrame, characteristics: list, params: list, ) -> gmm.GMMResults:
     df_inv_date = df_inv_date.dropna(subset='ln_rweight')
-
     exog = np.asarray(df_inv_date[['ytm', 'mean_ln_rweight'] + characteristics])
-    instrument = np.asarray(df_inv_date[['ln_iv_me', 'mean_ln_rweight'] + characteristics])
+    instrument = np.asarray(df_inv_date[['iv_ytm', 'mean_ln_rweight'] + characteristics])
     n = exog.shape[0]
     endog = np.asarray(df_inv_date['ln_rweight'] - df_inv_date['pct_uni_held'])
     start_params = np.zeros(len(params))
     w0inv = np.dot(instrument.T, instrument) / n
 
-    try:
-        model = gmm.NonlinearIVGMM(
-            endog=endog,
-            exog=exog,
-            instrument=instrument,
-            func=momcond_L)
-        result = model.fit(
-            start_params=start_params,
-            maxiter=0,
-            inv_weights=w0inv)
-        # log_results(result, params)
-        return result
-
-    except np.linalg.LinAlgError:
-        print('Linear Algebra Error')
+    if len(exog) == 1:
+        print('One valid holding')
         return None
+
+    # try:
+    model = gmm.NonlinearIVGMM(
+        endog=endog,
+        exog=exog,
+        instrument=instrument,
+        func=momcond_L)
+    result = model.fit(
+        start_params=start_params,
+        maxiter=0,
+        inv_weights=w0inv)
+    # log_results(result, params)
+    return result
+
+    # except np.linalg.LinAlgError:
+    #     print('Linear Algebra Error')
+    #     return None
 
 
 def estimate_model_L(df_weights: pd.DataFrame, characteristics: list, params: list, min_n_holding: int) -> pd.DataFrame:
@@ -670,8 +678,8 @@ def estimate_model_L(df_weights: pd.DataFrame, characteristics: list, params: li
     df_institutions = (df_weights
                        .loc[mask]
                        .set_index(['inv_id', 'date'])
-                       .assign(
-        gmm_result=lambda x: x.groupby(['inv_id', 'date']).apply(lambda y: fit_inv_date_L(y, characteristics, params)))
+                       .assign(gmm_result=lambda x: x.groupby(['inv_id', 'date']).apply(
+        lambda y: fit_inv_date_L(y, characteristics, params)).reset_index(drop=True))
                        .reset_index())
 
     df_bins = (df_weights
@@ -708,7 +716,7 @@ def momcond_NL(params: np.array, exog: np.array) -> np.array:
 
 def fit_inv_date_NL(df_inv_date: pd.DataFrame, characteristics: list, params: list) -> gmm.GMMResults:
     exog = np.asarray(df_inv_date[['ytm', 'rweight', 'mean_ln_rweight'] + characteristics])
-    instrument = np.asarray(df_inv_date[['ln_iv_me', 'rweight', 'mean_ln_rweight'] + characteristics])
+    instrument = np.asarray(df_inv_date[['iv_ytm', 'rweight', 'mean_ln_rweight'] + characteristics])
     n = exog.shape[0]
     endog = np.ones(n)
 
@@ -761,8 +769,6 @@ def calc_latent_demand(df_model: pd.DataFrame, characteristics: list, params: li
     def unpack_params(df: pd.DataFrame) -> pd.DataFrame:
         df[params] = pd.DataFrame(df['lst_params'].tolist(), index=df.index)
         return df
-
-    upper_bound = 0.9999
 
     df_results = (df_model
                   .dropna()
@@ -974,8 +980,7 @@ def decompose_variance(df_results: pd.DataFrame, characteristics: list, params: 
 
 def clean_figures(df_results: pd.DataFrame) -> pd.DataFrame:
     return (df_results
-            .assign(date=lambda x: x['date'].dt.to_timestamp(),
-                    typecode=lambda x: x['typecode'].apply(get_readable_typecode)))
+            .assign(date=lambda x: x['date'].apply(lambda p: p.strftime(None))))
 
 
 def typecode_share_counts(df_figure: pd.DataFrame, figure_path: str):
@@ -1002,13 +1007,12 @@ def typecode_share_counts(df_figure: pd.DataFrame, figure_path: str):
     g.despine()
     plt.savefig(os.path.join(figure_path, f'typecode_share.png'))
 
-    return df_inv_aum
+    return df_figure
 
 
 def check_moment_condition(df_figures: pd.DataFrame, min_n_holding: int):
     mask = df_figures['n_holding'] >= min_n_holding
     df_mom = (df_figures
-              .loc[mask]
               .groupby(['inv_id', 'date'])
               .agg({'moment': 'mean'}))
 
@@ -1031,11 +1035,10 @@ def check_moment_condition(df_figures: pd.DataFrame, min_n_holding: int):
 def critical_value_test(df_figures: pd.DataFrame, characteristics: list, min_n_holding: int, figure_path: str):
     def iv_reg(df_inv_date: pd.DataFrame):
         y = df_inv_date['ytm']
-        X = df_inv_date[['ln_iv_me'] + characteristics]
+        X = df_inv_date[['iv_ytm'] + characteristics]
         model = OLS(y, X)
         result = model.fit()
         t_stat = result.tvalues.iloc[0]
-
         return abs(t_stat)
 
     df_iv = (df_figures
@@ -1043,9 +1046,8 @@ def critical_value_test(df_figures: pd.DataFrame, characteristics: list, min_n_h
              .apply(iv_reg)
              .to_frame('t_stat')
              .groupby('date')
-             .min()
+             .median()
              .reset_index())
-    print(df_iv.columns)
 
     g = sns.relplot(data=df_iv,
                     x='date',
@@ -1086,14 +1088,14 @@ def test_index_fund(df_figures: pd.DataFrame, characteristics: list, params: lis
     return df_figures
 
 
-def graph_type_params(df_results: pd.DataFrame, params: list, figure_path: str):
-    df_types = df_results.copy()
-    df_types[params] = df_types[params].apply(lambda x: x * df_results['aum'])
+def graph_type_params(df_figures: pd.DataFrame, params: list, figure_path: str):
+    df_types = df_figures.copy()
+    df_types[params] = df_types[params].apply(lambda x: x * df_figures['aum'])
     df_types = (df_types
                 .groupby(['typecode', 'date'])
                 [params]
                 .sum()
-                .apply(lambda x: x / df_results.groupby(['typecode', 'date'])['aum'].sum()))
+                .apply(lambda x: x / df_figures.groupby(['typecode', 'date'])['aum'].sum()))
 
     for param in params:
         g = sns.relplot(data=df_types,
@@ -1106,7 +1108,7 @@ def graph_type_params(df_results: pd.DataFrame, params: list, figure_path: str):
         g.despine()
         plt.savefig(os.path.join(figure_path, f'{param}.png'))
 
-    return df_results
+    return df_figures
 
 
 def graph_std_latent_demand(df_figures: pd.DataFrame, figure_path: str):
@@ -1133,15 +1135,16 @@ def graph_std_latent_demand(df_figures: pd.DataFrame, figure_path: str):
     g.despine()
     plt.savefig(os.path.join(figure_path, f'std_latent_demand.png'))
 
-    return df_results
+    return df_figures
 
 
 def summary_tables(df_figures: pd.DataFrame):
     return df_figures
 
 
-def save_df(path: str, name: str, df: pd.DataFrame):
+def save_df(df: pd.DataFrame, path: str, name: str):
     df.to_csv(os.path.join(path, name), index=False)
+    return df
 
 
 def get_param_cols(cols: list) -> list:
@@ -1153,11 +1156,114 @@ def get_readable_param(name: str) -> str:
 
 
 def get_readable_typecode(typecode: str):
+    dict_typecode = {'TTF': '13F Filer',
+                     'FOK': '401K',
+                     'ANN': 'Annuity/Variable Annuity',
+                     'AMM': 'Annuity/VA - Money Market',
+                     'BKP': 'Bank-Portfolio',
+                     'SVG': 'Bank-Savings/Bldg Society',
+                     'BKT': 'Bank-Trust',
+                     'CHU': 'Church/Religious Org',
+                     'CRP': 'Corporation',
+                     'CRU': 'Credit Union',
+                     'FCC': 'Finance Company',
+                     'FED': 'Federal Reserve',
+                     'FEN': 'Foundation/Endowment',
+                     'GVT': 'Government',
+                     'HLC': 'Health Care Systems',
+                     'HFD': 'Hedge Fund',
+                     'HOU': 'Households',
+                     'HSP': 'Hospital',
+                     'INS': 'Insurance Co-Diversified',
+                     'LIN': 'Insurance Co-Life/Health',
+                     'PIN': 'Insurance Co-Prop & Cas',
+                     'INM': 'Investment Manager',
+                     'BAL': 'Mutual Fund - Balanced',
+                     'MMM': 'Mutual Fund - Money Mkt',
+                     'MUT': 'MutFd-OE/UnitTr/SICAV/FCP',
+                     'END': 'MutFd-CE/Inv Tr/FCP',
+                     'QUI': 'Mutual Fund-Equity',
+                     'FOF': 'Mutual Fund-Fund of Funds',
+                     'NDT': 'Nuclear De-Comm Trust',
+                     'OTH': 'Other',
+                     'CPF': 'Pension Fund-Corporate',
+                     'GPE': 'Pension Fund-Government',
+                     'UPE': 'Pension Fund-Union',
+                     'RIN': 'Reinsurance Company',
+                     'SBC': 'Small Business Invst Co',
+                     'SPZ': 'Spezial Fund',
+                     'UIT': 'Unit Investment Trust'}
     return dict_typecode[typecode]
 
 
 def agg_typcode(typecode: str):
+    dict_type_agg = {'TTF': 'Investment Manager',
+                     'FOK': 'Pension Fund',
+                     'ANN': 'Variable Annuity',
+                     'AMM': 'Variable Annuity',
+                     'BKP': 'Bank',
+                     'SVG': 'Bank',
+                     'BKT': 'Bank',
+                     'CHU': 'Other',
+                     'CRP': 'Corporation',
+                     'CRU': 'Bank',
+                     'FCC': 'Investment Manager',
+                     'FED': 'Federal Reserve',
+                     'FEN': 'Other',
+                     'GVT': 'Government',
+                     'HLC': 'Insurance Company',
+                     'HFD': 'Investment Manager',
+                     'HOU': 'Households',
+                     'HSP': 'Insurance Company',
+                     'INS': 'Insurance Company',
+                     'LIN': 'Insurance Company',
+                     'PIN': 'Insurance Company',
+                     'INM': 'Investment Manager',
+                     'BAL': 'Mutual Fund',
+                     'MMM': 'Mutual Fund',
+                     'MUT': 'Mutual Fund',
+                     'END': 'Mutual Fund',
+                     'QUI': 'Mutual Fund',
+                     'FOF': 'Mutual Fund',
+                     'NDT': 'Other',
+                     'OTH': 'Other',
+                     'CPF': 'Pension Fund',
+                     'GPE': 'Pension Fund',
+                     'UPE': 'Pension Fund',
+                     'RIN': 'Insurance Company',
+                     'SBC': 'Investment Manager',
+                     'SPZ': 'Investment Manager',
+                     'UIT': 'Investment Manager'}
     return dict_type_agg[typecode]
+
+
+def get_rating_number(rating_class: str):
+    lst_rating = ['AAA',
+                  'AA+',
+                  'AA',
+                  'AA-',
+                  'A+',
+                  'A',
+                  'A-',
+                  'BBB+',
+                  'BBB',
+                  'BBB-',
+                  'BB+',
+                  'BB',
+                  'BB-',
+                  'B+',
+                  'B',
+                  'B-',
+                  'CCC+',
+                  'CCC',
+                  'CCC-',
+                  'CC',
+                  'C',
+                  'C-',
+                  'D']
+    dict_rating = {lst_rating[i]: i for i in range(len(lst_rating))}
+    dict_rating['NR'] = np.nan
+    return dict_rating[rating_class]
 
 
 # %%
@@ -1400,95 +1506,21 @@ figure_path = 'figures/'
 os.makedirs(output_path, exist_ok=True)
 os.makedirs(figure_path, exist_ok=True)
 
-start_date = pd.Period('2015Q1')
+start_date = pd.Period('2017Q3')
 end_date = pd.Period('2017Q4')
 
-characteristics = [
-                      'coupon',
-                      't_maturity',
-                      'spread',
-                  ] + ['const']
+characteristics = ['coupon',
+                   'amtout',
+                   't_maturity',
+                   # 'is_treasury',
+                   'credit_rating',
+                   'spread',
+                   'const']
 params = ['beta_ytm'] + get_param_cols(characteristics)
 
-dict_typecode = {'TTF': '13F Filer',
-                 'FOK': '401K',
-                 'ANN': 'Annuity/Variable Annuity',
-                 'AMM': 'Annuity/VA - Money Market',
-                 'BKP': 'Bank-Portfolio',
-                 'SVG': 'Bank-Savings/Bldg Society',
-                 'BKT': 'Bank-Trust',
-                 'CHU': 'Church/Religious Org',
-                 'CRP': 'Corporation',
-                 'CRU': 'Credit Union',
-                 'FCC': 'Finance Company',
-                 'FED': 'Federal Reserve',
-                 'FEN': 'Foundation/Endowment',
-                 'GVT': 'Government',
-                 'HLC': 'Health Care Systems',
-                 'HFD': 'Hedge Fund',
-                 'HOU': 'Households',
-                 'HSP': 'Hospital',
-                 'INS': 'Insurance Co-Diversified',
-                 'LIN': 'Insurance Co-Life/Health',
-                 'PIN': 'Insurance Co-Prop & Cas',
-                 'INM': 'Investment Manager',
-                 'BAL': 'Mutual Fund - Balanced',
-                 'MMM': 'Mutual Fund - Money Mkt',
-                 'MUT': 'MutFd-OE/UnitTr/SICAV/FCP',
-                 'END': 'MutFd-CE/Inv Tr/FCP',
-                 'QUI': 'Mutual Fund-Equity',
-                 'FOF': 'Mutual Fund-Fund of Funds',
-                 'NDT': 'Nuclear De-Comm Trust',
-                 'OTH': 'Other',
-                 'CPF': 'Pension Fund-Corporate',
-                 'GPE': 'Pension Fund-Government',
-                 'UPE': 'Pension Fund-Union',
-                 'RIN': 'Reinsurance Company',
-                 'SBC': 'Small Business Invst Co',
-                 'SPZ': 'Spezial Fund',
-                 'UIT': 'Unit Investment Trust'}
-
-dict_type_agg = {'TTF': 'Investment Manager',
-                 'FOK': 'Pension Fund',
-                 'ANN': 'Variable Annuity',
-                 'AMM': 'Variable Annuity',
-                 'BKP': 'Bank',
-                 'SVG': 'Bank',
-                 'BKT': 'Bank',
-                 'CHU': 'Other',
-                 'CRP': 'Corporation',
-                 'CRU': 'Bank',
-                 'FCC': 'Investment Manager',
-                 'FED': 'Federal Reserve',
-                 'FEN': 'Other',
-                 'GVT': 'Government',
-                 'HLC': 'Insurance Company',
-                 'HFD': 'Investment Manager',
-                 'HOU': 'Households',
-                 'HSP': 'Insurance Company',
-                 'INS': 'Insurance Company',
-                 'LIN': 'Insurance Company',
-                 'PIN': 'Insurance Company',
-                 'INM': 'Investment Manager',
-                 'BAL': 'Mutual Fund',
-                 'MMM': 'Mutual Fund',
-                 'MUT': 'Mutual Fund',
-                 'END': 'Mutual Fund',
-                 'QUI': 'Mutual Fund',
-                 'FOF': 'Mutual Fund',
-                 'NDT': 'Other',
-                 'OTH': 'Other',
-                 'CPF': 'Pension Fund',
-                 'GPE': 'Pension Fund',
-                 'UPE': 'Pension Fund',
-                 'RIN': 'Insurance Company',
-                 'SBC': 'Investment Manager',
-                 'SPZ': 'Investment Manager',
-                 'UIT': 'Investment Manager'}
-
-min_n_holding = 500
+min_n_holding = 1000
 n_quarters = 11
-indexfund_id = -1
+indexfund_id = 22225
 
 # Main
 
@@ -1521,7 +1553,7 @@ df_results = (df_holding
               .pipe(calc_holding_weights)
               .pipe(estimate_model_L, characteristics, params, min_n_holding)
               .pipe(calc_latent_demand, characteristics, params)
-              .to_csv(os.path.join(output_path, 'df_results.csv'))
+              .pipe(save_df, output_path, 'df_results.csv')
               .pipe(clean_figures)
               .pipe(typecode_share_counts, figure_path)
               .pipe(check_moment_condition, min_n_holding)
