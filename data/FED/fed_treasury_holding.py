@@ -14,8 +14,14 @@ def last_wednesday_of_quarter(q: pd.Period):
     return last_wednesday.strftime('%Y-%m-%d')
 
 
-def call_api(as_of_date: str):
+def call_treasury_api(as_of_date: str):
     url = f'https://markets.newyorkfed.org/api/soma/tsy/get/asof/{as_of_date}.json'
+    response = requests.get(url)
+    return json.loads(response.text)['soma']['holdings']
+
+
+def call_agency_api(as_of_date: str):
+    url = f'https://markets.newyorkfed.org/api/soma/agency/get/asof/{as_of_date}.json'
     response = requests.get(url)
     return json.loads(response.text)['soma']['holdings']
 
@@ -38,8 +44,12 @@ if __name__ == '__main__':
 
     for q in period_range:
         as_of_date = last_wednesday_of_quarter(q)
-        data = call_api(as_of_date)
-        df_q = pd.DataFrame(data=data, columns=cols).assign(date=q)
+        treasury_data = call_treasury_api(as_of_date)
+        agency_data = call_agency_api(as_of_date)
+
+        df_q = (pd.DataFrame(data=treasury_data + agency_data,
+                             columns=cols)
+                .assign(date=q))
         df = pd.concat([df, df_q])
         print('Imported  ', q)
 
