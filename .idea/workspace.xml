@@ -5,7 +5,30 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d8d9fc49-6cb1-4a92-8236-c27b9e00aa19" name="Changes" comment="pre final run">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/output/df_results.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/demand_system_bonds.py" beforeDir="false" afterPath="$PROJECT_DIR$/demand_system_bonds.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/beta_amtout.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_amtout.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/beta_const.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_const.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/beta_coupon.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_coupon.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/beta_credit_rating.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_credit_rating.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/beta_spread.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_spread.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/beta_t_maturity.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_t_maturity.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/beta_ytm.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/beta_ytm.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/index_fund_beta_amtout.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/index_fund_beta_amtout.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/index_fund_beta_const.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/index_fund_beta_const.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/index_fund_beta_coupon.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/index_fund_beta_coupon.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/index_fund_beta_credit_rating.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/index_fund_beta_credit_rating.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/index_fund_beta_spread.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/index_fund_beta_spread.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/index_fund_beta_t_maturity.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/index_fund_beta_t_maturity.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/index_fund_beta_ytm.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/index_fund_beta_ytm.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/index_fund_latent_demand.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/instrument_validity.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/instrument_validity.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/latent_demand.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/moment_condition.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/moment_condition.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/std_latent_demand.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/std_latent_demand.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/typecode_count.png" beforeDir="false" afterPath="$PROJECT_DIR$/figures/typecode_count.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/figures/typecode_share.png" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -40,26 +63,27 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_ADD_EXTERNAL_FILES": "true",
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "Python.demand_system.executor": "Run",
-    "Python.demand_system_bonds.executor": "Run",
-    "Python.fed_treasury_holding (1).executor": "Run",
-    "Python.soma_api.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "C:/Users/wyatt/OneDrive - PennO365/WORKSPACE/py/premia",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;Python.demand_system.executor&quot;: &quot;Run&quot;,
+    &quot;Python.demand_system_bonds.executor&quot;: &quot;Run&quot;,
+    &quot;Python.fed_treasury_holding (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.fed_treasury_holding.executor&quot;: &quot;Run&quot;,
+    &quot;Python.soma_api.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/wyatt/OneDrive - PennO365/WORKSPACE/py/premia&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\wyatt\OneDrive - PennO365\WORKSPACE\py\premia" />
@@ -68,7 +92,7 @@
       <recent name="C:\Users\wyatt\OneDrive - PennO365\WORKSPACE\py\premia\data\FED" />
     </key>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Python.fed_treasury_holding">
     <configuration name="fed_treasury_holding (1)" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="premia" />
       <option name="ENV_FILES" value="" />
@@ -117,6 +141,7 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.fed_treasury_holding" />
         <item itemvalue="Python.fed_treasury_holding (1)" />
       </list>
     </recent_temporary>
@@ -195,7 +220,8 @@
       <workItem from="1712263032410" duration="14999000" />
       <workItem from="1712357098705" duration="962000" />
       <workItem from="1712361755995" duration="9169000" />
-      <workItem from="1712410993842" duration="57816000" />
+      <workItem from="1712410993842" duration="57888000" />
+      <workItem from="1712523412528" duration="7671000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit">
       <option name="closed" value="true" />
@@ -581,7 +607,15 @@
       <option name="project" value="LOCAL" />
       <updated>1712522981311</updated>
     </task>
-    <option name="localTasksCounter" value="49" />
+    <task id="LOCAL-00049" summary="pre final run">
+      <option name="closed" value="true" />
+      <created>1712523366510</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1712523366510</updated>
+    </task>
+    <option name="localTasksCounter" value="50" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -629,7 +663,8 @@
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/demand_system_ipynb$fed_treasury_holding__1_.coverage" NAME="fed_treasury_holding (1) Coverage Results" MODIFIED="1712495695308" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data/FED" />
     <SUITE FILE_PATH="coverage/demand_system_ipynb$demand_system.coverage" NAME="demand_system Coverage Results" MODIFIED="1711939032739" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/demand_system_ipynb$demand_system_bonds.coverage" NAME="demand_system_bonds Coverage Results" MODIFIED="1712522251429" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/demand_system_ipynb$demand_system_bonds.coverage" NAME="demand_system_bonds Coverage Results" MODIFIED="1712540257392" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/demand_system_ipynb$soma_api.coverage" NAME="soma_api Coverage Results" MODIFIED="1712356391379" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data/FED" />
+    <SUITE FILE_PATH="coverage/demand_system_ipynb$fed_treasury_holding.coverage" NAME="fed_treasury_holding Coverage Results" MODIFIED="1712523705233" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data/FED" />
   </component>
 </project>

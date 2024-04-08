@@ -650,26 +650,26 @@ def fit_inv_date_L(df_inv_date: pd.DataFrame, characteristics: list, params: lis
     start_params = np.zeros(len(params))
     w0inv = np.dot(instrument.T, instrument) / n
 
-    if len(exog) == 1:
+    if len(exog) <= 1:
         print('One valid holding')
         return None
 
-    # try:
-    model = gmm.NonlinearIVGMM(
-        endog=endog,
-        exog=exog,
-        instrument=instrument,
-        func=momcond_L)
-    result = model.fit(
-        start_params=start_params,
-        maxiter=0,
-        inv_weights=w0inv)
-    # log_results(result, params)
-    return result
+    try:
+        model = gmm.NonlinearIVGMM(
+            endog=endog,
+            exog=exog,
+            instrument=instrument,
+            func=momcond_L)
+        result = model.fit(
+            start_params=start_params,
+            maxiter=0,
+            inv_weights=w0inv)
+        # log_results(result, params)
+        return result
 
-    # except np.linalg.LinAlgError:
-    #     print('Linear Algebra Error')
-    #     return None
+    except np.linalg.LinAlgError:
+        print('Linear Algebra Error')
+        return None
 
 
 def estimate_model_L(df_weights: pd.DataFrame, characteristics: list, params: list, min_n_holding: int) -> pd.DataFrame:
@@ -996,6 +996,7 @@ def typecode_share_counts(df_figure: pd.DataFrame, figure_path: str):
                     kind='line')
     g.set_axis_labels('Date', 'Number of Investors')
     g.despine()
+    plt.xticks(rotation=45)
     plt.savefig(os.path.join(figure_path, f'typecode_count.png'))
 
     g = sns.relplot(data=df_type_share,
@@ -1005,6 +1006,7 @@ def typecode_share_counts(df_figure: pd.DataFrame, figure_path: str):
                     kind='line')
     g.set_axis_labels('Date', 'Share of AUM')
     g.despine()
+    plt.xticks(rotation=45)
     plt.savefig(os.path.join(figure_path, f'typecode_share.png'))
 
     return df_figure
@@ -1027,6 +1029,7 @@ def check_moment_condition(df_figures: pd.DataFrame, min_n_holding: int):
     )
     g.set_axis_labels('Log Latent Demand', 'Frequency')
     g.despine()
+    plt.xticks(rotation=45)
     plt.savefig(os.path.join(figure_path, f'moment_condition.png'))
 
     return df_figures
@@ -1046,7 +1049,7 @@ def critical_value_test(df_figures: pd.DataFrame, characteristics: list, min_n_h
              .apply(iv_reg)
              .to_frame('t_stat')
              .groupby('date')
-             .median()
+             .max()
              .reset_index())
 
     g = sns.relplot(data=df_iv,
@@ -1056,6 +1059,7 @@ def critical_value_test(df_figures: pd.DataFrame, characteristics: list, min_n_h
     g.refline(y=4.05, linestyle='--')
     g.set_axis_labels('Date', 'First stage t-statistic')
     g.despine()
+    plt.xticks(rotation=45)
     plt.savefig(os.path.join(figure_path, f'instrument_validity.png'))
 
     return df_figures
@@ -1070,11 +1074,10 @@ def test_index_fund(df_figures: pd.DataFrame, characteristics: list, params: lis
 
     df_index_fund_model = (df_index_fund
                            .set_index(['inv_id', 'date'])
-                           .assign(
-        gmm_result=lambda x: x.groupby(['inv_id', 'date']).apply(lambda y: fit_inv_date_L(y, characteristics, params)))
+                           .assign(gmm_result=lambda x: x.groupby(['inv_id', 'date']).apply(lambda y: fit_inv_date_L(y, characteristics, params)))
                            .reset_index())
     df_index_fund_result = calc_latent_demand(df_index_fund_model, characteristics, params)
-    cols = params + ['latent_demand']
+    cols = params
     for param in cols:
         g = sns.relplot(data=df_index_fund_result,
                         x='date',
@@ -1083,6 +1086,7 @@ def test_index_fund(df_figures: pd.DataFrame, characteristics: list, params: lis
         g.set_axis_labels('Date', f'{get_readable_param(param)}')
         g.despine()
         plt.ylim(-1, 1)
+        plt.xticks(rotation=45)
         plt.savefig(os.path.join(figure_path, f'index_fund_{param}.png'))
 
     return df_figures
@@ -1106,6 +1110,7 @@ def graph_type_params(df_figures: pd.DataFrame, params: list, figure_path: str):
         g.set_axis_labels('Date', f'{get_readable_param(param)}')
         g.legend.set_title('Institution Type')
         g.despine()
+        plt.xticks(rotation=45)
         plt.savefig(os.path.join(figure_path, f'{param}.png'))
 
     return df_figures
@@ -1114,15 +1119,13 @@ def graph_type_params(df_figures: pd.DataFrame, params: list, figure_path: str):
 def graph_std_latent_demand(df_figures: pd.DataFrame, figure_path: str):
     df_ld = (df_figures
              .groupby(['inv_id', 'date'])
-             .agg({
-        'latent_demand': 'std',
-        'aum': 'last',
-        'typecode': 'last'})
+             .agg({'latent_demand': 'std',
+                   'aum': 'last',
+                   'typecode': 'last'})
              .assign(latent_demand=lambda x: x['latent_demand'] * x['aum'])
              .groupby(['typecode', 'date'])
-             .agg({
-        'latent_demand': 'mean',
-        'aum': 'sum'})
+             .agg({'latent_demand': 'mean',
+                   'aum': 'sum'})
              .assign(latent_demand=lambda x: x['latent_demand'] / x['aum']))
 
     g = sns.relplot(data=df_ld,
@@ -1133,6 +1136,7 @@ def graph_std_latent_demand(df_figures: pd.DataFrame, figure_path: str):
     g.set_axis_labels('Date', 'Standard Deviation of Latent Demand')
     g.legend.set_title('Institution Type')
     g.despine()
+    plt.xticks(rotation=45)
     plt.savefig(os.path.join(figure_path, f'std_latent_demand.png'))
 
     return df_figures
@@ -1152,7 +1156,15 @@ def get_param_cols(cols: list) -> list:
 
 
 def get_readable_param(name: str) -> str:
-    return name.replace('_', ' ').title()
+    param_dict = {'beta_ytm': 'Beta Yield',
+                  'beta_amtout': 'Beta Amount Oustanding',
+                  'beta_coupon': 'Beta Coupon',
+                  'beta_credit_rating': 'Beta Credit Rating',
+                  'beta_const': 'Beta Outside Asset',
+                  'beta_spread': 'Beta Bid-Ask Spread',
+                  'beta_t_maturity': 'Beta Time to Maturity'}
+
+    return param_dict[name]
 
 
 def get_readable_typecode(typecode: str):
@@ -1261,12 +1273,11 @@ def get_rating_number(rating_class: str):
                   'C',
                   'C-',
                   'D']
-    dict_rating = {lst_rating[i]: i for i in range(len(lst_rating))}
+    dict_rating = {lst_rating[i]: float(i) for i in range(len(lst_rating))}
     dict_rating['NR'] = np.nan
     return dict_rating[rating_class]
 
 
-# %%
 # Log
 
 def log_quarter(q: pd.Period):
@@ -1506,8 +1517,8 @@ figure_path = 'figures/'
 os.makedirs(output_path, exist_ok=True)
 os.makedirs(figure_path, exist_ok=True)
 
-start_date = pd.Period('2017Q3')
-end_date = pd.Period('2017Q4')
+start_date = pd.Period('2018Q1')
+end_date = pd.Period('2021Q4')
 
 characteristics = ['coupon',
                    'amtout',
